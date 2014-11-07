@@ -230,7 +230,7 @@ haltvm() {
 	. $RTDIR/$NAME.state 
 
  	if [ -z "$PID" ] ; then
-		error "VM is running, but Bhyve hasn't started yet"
+		echo "VM is running, but Bhyve hasn't started yet"
 		exit 1
 	fi
  
@@ -248,7 +248,7 @@ killvm() {
 	. $RTDIR/$NAME.state 
 
 	if [ -z "$PID" ] ; then
-		error "VM is running, but Bhyve hasn't started yet"
+		echo "VM is running, but Bhyve hasn't started yet"
 		exit 1
 	fi
 
