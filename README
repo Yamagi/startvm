@@ -1,0 +1,11 @@
+Simple script to run a Bhvye virtual machine. You need to edit this
+script to match your setup! Before running this script make sure 
+that the following kernel modules are loaded:
+ - if_bridge.ko
+ - if_tap.ko
+ - nmdm.ko
+ - vmm.ko
+
+All instances of this script must share the same configuration dir,
+otherwise strange things will happen. To boot other guests beside
+FreeBSD the sysutils/grub2-bhyve must be installed.
