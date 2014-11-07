@@ -303,13 +303,16 @@ runvm() {
 
 		if [ $LOADER = "grub" ] ; then
 			dbg "Calling grub-bhyve"
-			/usr/local/sbin/grub-bhyve -r $BOOT -m $MAP -M $MEMORY $NAME < $NMDMA > $NMDMA 2>&1 &
+			/usr/local/sbin/grub-bhyve -r $BOOT -m $MAP -M $MEMORY -c $NMDMA $NAME &
 			PID=$!
 
-			# We need to write 1 bit into the virtual null modem cable,
-			# otherwise Grub will wait forever for the $NMDMA pipes to
-			# be opened. This is a little bit hacky...
-			true > $NMDMB
+			# We need to write a carriage return into the virtual
+			# nullmodem cabel for Grub to start up. Otherwise it
+			# may wait forever for user input. Note: We give Grub
+			# 1 second to start up.
+			sleep 1
+			echo '\n' > $NMDMB
+
 			wait $PID
 		fi
 
