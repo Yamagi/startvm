@@ -43,49 +43,6 @@
 # Configuration
 # -------------
 
-# 1. Global stuff
-
-# VM name
-NAME=vmname
-
-# Number of CPUs available to the VM.
-# (Max 16. Not more than the host has.)
-CPUS=4
-
-# Memory available to the VM
-# (For Grub in megabytes!)
-MEMORY=4096M
-
-# Harddisk image for this VM
-HD=/path/to/image
-
-# CDROM image for this VM
-# (0 for no CDROM)
-CDROM=0
-
-# --------
-
-# 2. Bootloader
-
-# Bootloader to use. ('bhyve' for
-# FreeBSD, 'grub' for everything
-# else)
-LOADER=bhyve
-
-# When the bootloader is set to 
-# 'grub' this system map is used.
-# Ignored when set to 'bhyve'.
-MAP=/path/to/system.map
-
-# Boot device. (Values are 'cdrom' or
-# 'hd' for bhyve, or the system.map
-# entry for grub)
-BOOT=hd
-
-# --------
-
-# 3. Systemwide stuff
-
 # Run in background?
 DAEMON=1
 
@@ -105,7 +62,7 @@ RTDIR=/usr/vm/work/
 
 # Print usage.
 usage() {
-	echo "Usage: ./startvm.sh cmd"
+	echo "Usage: ./startvm.sh config_file cmd"
 	echo ""
 	echo "Commands:"
 	echo " - cons:   Open a serial console to the guest"
@@ -196,7 +153,7 @@ createtap() {
 # Transforms the process into a daemon.
 becomedaemon() {
 	dbg "Respawning a daemon"
-	/usr/sbin/daemon -f $1 daemon
+	/usr/sbin/daemon -f $1 $2 daemon
 }
 
 # -------------------------------------------------------------------- #
@@ -397,14 +354,21 @@ status() {
 mkdir -p $RTDIR
 
 # Command line processing
-if [ -z "$1" ] ; then
+if [ -z "$1" -o -z "$2" ] ; then
    usage
 fi   
 
-if [ $1 = "daemon" ] ; then
+if [ ! -f "$1" ] ; then
+	echo "$1 doesn't exists or is not a regular file"
+	exit 1
+fi
+
+. $1
+
+if [ $2 = "daemon" ] ; then
 	runvm
 else
-	case $1 in
+	case $2 in
 		cons)
 			console
 			;;
@@ -419,7 +383,7 @@ else
 			;;
 		run)
 			if [ $DAEMON -ne 0 ] ; then
-				becomedaemon $0
+				becomedaemon $0 $1
 			else
 				runvm
 			fi
