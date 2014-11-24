@@ -56,7 +56,7 @@ EXTNIC=em0
 # Runtime directory. (Must be the same
 # for all instances, otherwise things
 # will fuck up!)
-RTDIR=/usr/vm/work/
+RTDIR=/usr/vm/bhyve/work/
 
 # -------------------------------------------------------------------- #
 
