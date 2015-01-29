@@ -40,23 +40,10 @@
 
 # -------------------------------------------------------------------- #
 
-# Configuration
-# -------------
-
-# Run in background?
-DAEMON=1
-
-# Debug output
-DEBUG=0
-
-# Bridge for network access
-BRIDGE=bridge0
-EXTNIC=em0
-
-# Runtime directory. (Must be the same
-# for all instances, otherwise things
-# will fuck up!)
-RTDIR=/usr/vm/bhyve/work/
+# Source system wide configuration
+SCRIPTPATH=`readlink -f "$0"`
+SCRIPTPATH=`dirname "$SCRIPTPATH"`
+. $SCRIPTPATH/system.cfg
 
 # -------------------------------------------------------------------- #
 
