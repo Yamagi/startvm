@@ -270,7 +270,7 @@ runvm() {
 				-l com1,$NMDMA -c $CPUS -m $MEMORY $NAME > /dev/null 2>&1 & 
 		else
 			/usr/sbin/bhyve -A -H -P -s 0:0,hostbridge -s 1:0,lpc -s 2:0,virtio-net,$TAP \
-				-s 3:0,ahci-hd,$HD -s 4:0,ahci-cd,$CDROM -s 4:0,virtio-rnd \
+				-s 3:0,ahci-hd,$HD -s 4:0,ahci-cd,$CDROM -s 5:0,virtio-rnd \
 				-l com1,$NMDMA -c $CPUS -m $MEMORY $NAME > /dev/null 2>&1 &
 		fi
 
