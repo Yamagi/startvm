@@ -27,7 +27,7 @@
 # -------------------------------------------------------------------- #
 
 # Simple script to run a Bhvye virtual machine. You need to edit this
-# script to match your setup! Before running this script make sure 
+# script to match your setup! Before running this script make sure
 # that the following kernel modules are loaded:
 #  - if_bridge.ko
 #  - if_tap.ko
@@ -88,7 +88,7 @@ checkuponopen() {
 	if [ `/sbin/sysctl -n net.link.tap.up_on_open` -ne 1 ] ; then
 		dbg "Setting net.link.tap.up_on_open to 1"
 
-		/sbin/sysctl net.link.tap.up_on_open=1 > /dev/null 2>&1 
+		/sbin/sysctl net.link.tap.up_on_open=1 > /dev/null 2>&1
 	fi
 }
 
@@ -112,7 +112,7 @@ generateid() {
 		UID=0
 	fi
 
-	echo "UID=$UID" > $RTDIR/id 
+	echo "UID=$UID" > $RTDIR/id
 
 	# Unlock
 	rm $RTDIR/id.lock
@@ -158,20 +158,20 @@ run_bhyveload() {
 	elif [ $BOOT = "hd" ] ; then
 		dbg "Booting from harddisk"
 		/usr/sbin/bhyveload -m $MEMORY -d $HD -c $NMDMA $NAME
-	fi 
+	fi
 
 	dbg "Calling bhyve"
 
 	if [ $CDROM = 0 ] ; then
 		/usr/sbin/bhyve -A -H -P -u -s 0:0,hostbridge -s 1:0,lpc \
 			-s 2:0,virtio-net,$TAP -s 3:0,ahci-hd,$HD -s 4:0,virtio-rnd \
-			-l com1,$NMDMA -c $CPUS -m $MEMORY $NAME > /dev/null 2>&1 & 
+			-l com1,$NMDMA -c $CPUS -m $MEMORY $NAME > /dev/null 2>&1 &
 	else
 		/usr/sbin/bhyve -A -H -P -u -s 0:0,hostbridge -s 1:0,lpc \
 			-s 2:0,virtio-net,$TAP -s 3:0,ahci-hd,$HD -s 4:0,ahci-cd,$CDROM \
 			-s 5:0,virtio-rnd -l com1,$NMDMA -c $CPUS -m $MEMORY $NAME \
 			> /dev/null 2>&1 &
-	fi 
+	fi
 
 	return $!
 }
@@ -200,13 +200,13 @@ run_grub() {
 	if [ $CDROM = 0 ] ; then
 		/usr/sbin/bhyve -A -H -P -u -s 0:0,hostbridge -s 1:0,lpc \
 			-s 2:0,virtio-net,$TAP -s 3:0,ahci-hd,$HD -s 4:0,virtio-rnd \
-			-l com1,$NMDMA -c $CPUS -m $MEMORY $NAME > /dev/null 2>&1 & 
+			-l com1,$NMDMA -c $CPUS -m $MEMORY $NAME > /dev/null 2>&1 &
 	else
 		/usr/sbin/bhyve -A -H -P -u -s 0:0,hostbridge -s 1:0,lpc \
 			-s 2:0,virtio-net,$TAP -s 3:0,ahci-hd,$HD -s 4:0,ahci-cd,$CDROM \
 			-s 5:0,virtio-rnd -l com1,$NMDMA -c $CPUS -m $MEMORY $NAME \
 			> /dev/null 2>&1 &
-	fi 
+	fi
 
 	return $!
 }
@@ -221,7 +221,7 @@ console() {
 		exit 1
 	fi
 
-	. $RTDIR/$NAME.state 
+	. $RTDIR/$NAME.state
 
 	# Call cu
 	dbg "Calling cu"
@@ -239,13 +239,13 @@ haltvm() {
 		exit 1
 	fi
 
-	. $RTDIR/$NAME.state 
+	. $RTDIR/$NAME.state
 
  	if [ -z "$PID" ] ; then
 		echo "VM is running, but Bhyve hasn't started yet"
 		exit 1
 	fi
- 
+
 	dbg "Sending SIGTERM to VM"
 	kill -TERM $PID
 }
@@ -257,7 +257,7 @@ killvm() {
 		exit 1
 	fi
 
-	. $RTDIR/$NAME.state 
+	. $RTDIR/$NAME.state
 
 	if [ -z "$PID" ] ; then
 		echo "VM is running, but Bhyve hasn't started yet"
@@ -295,10 +295,10 @@ runvm() {
 	while [ true ] ; do
 
  		# Save state
-		dbg "Saving state to $RTDIR/$NAME.state" 
+		dbg "Saving state to $RTDIR/$NAME.state"
 		echo "TAP=$TAP" > $RTDIR/$NAME.state
 		echo "NMDMA=$NMDMA" >> $RTDIR/$NAME.state
-		echo "NMDMB=$NMDMB" >> $RTDIR/$NAME.state 
+		echo "NMDMB=$NMDMB" >> $RTDIR/$NAME.state
 		echo "ID=$ID" >> $RTDIR/$NAME.state
 
 		# Load and run the VM
@@ -313,7 +313,7 @@ runvm() {
 		fi
 
 		# Save PID
-		dbg "Saving PID to $RTDIR/$NAME.state" 
+		dbg "Saving PID to $RTDIR/$NAME.state"
 		echo "PID=$PID" >> $RTDIR/$NAME.state
 
 		# Wait for bhyve
@@ -380,7 +380,7 @@ mkdir -p $RTDIR
 # Command line processing
 if [ -z "$1" -o -z "$2" ] ; then
    usage
-fi   
+fi
 
 if [ ! -f "$1" ] ; then
 	echo "$1 doesn't exists or is not a regular file"
