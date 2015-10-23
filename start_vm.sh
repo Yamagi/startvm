@@ -305,11 +305,12 @@ runvm() {
 		if [ $LOADER = "bhyve" ] ; then
 			run_bhyveload $TAP $NMDMA
 			PID=$?
-		fi
-
-		if [ $LOADER = "grub" ] ; then
+		elif [ $LOADER = "grub" ] ; then
 			run_grub $TAP $NMDMA $NMDMB
 			PID=$?
+		else
+			echo "Unknown LOADER method: $LOADER"
+			break;
 		fi
 
 		# Save PID
@@ -341,7 +342,7 @@ runvm() {
 	done
 
 	# Cleanup
-	/usr/sbin/bhyvectl --destroy --vm=$NAME
+	/usr/sbin/bhyvectl --destroy --vm=$NAME > /dev/null 2>&1
 	/sbin/ifconfig $BRIDGE deletem $TAP up
 	/sbin/ifconfig $TAP destroy
 	rm $RTDIR/$NAME.state
