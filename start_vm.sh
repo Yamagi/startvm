@@ -145,6 +145,74 @@ becomedaemon() {
 
 # -------------------------------------------------------------------- #
 
+# Runs a VM with bhyveload
+run_bhyveload() {
+	TAP=$1
+	NMDMA=$2
+
+	dbg "Calling bhyveload"
+
+	if [ $BOOT = "cdrom" ] ; then
+		dbg "Booting from CDROM"
+		/usr/sbin/bhyveload -m $MEMORY -d $CDROM -c $NMDMA $NAME
+	elif [ $BOOT = "hd" ] ; then
+		dbg "Booting from harddisk"
+		/usr/sbin/bhyveload -m $MEMORY -d $HD -c $NMDMA $NAME
+	fi 
+
+	dbg "Calling bhyve"
+
+	if [ $CDROM = 0 ] ; then
+		/usr/sbin/bhyve -A -H -P -u -s 0:0,hostbridge -s 1:0,lpc \
+			-s 2:0,virtio-net,$TAP -s 3:0,ahci-hd,$HD -s 4:0,virtio-rnd \
+			-l com1,$NMDMA -c $CPUS -m $MEMORY $NAME > /dev/null 2>&1 & 
+	else
+		/usr/sbin/bhyve -A -H -P -u -s 0:0,hostbridge -s 1:0,lpc \
+			-s 2:0,virtio-net,$TAP -s 3:0,ahci-hd,$HD -s 4:0,ahci-cd,$CDROM \
+			-s 5:0,virtio-rnd -l com1,$NMDMA -c $CPUS -m $MEMORY $NAME \
+			> /dev/null 2>&1 &
+	fi 
+
+	return $!
+}
+
+# Run VM with grub-bhyve
+run_grub() {
+	TAP=$1
+	NMDMA=$2
+	NMDMB=$3
+
+	dbg "Calling grub-bhyve"
+
+	# We need to write one bit into the virtual nullmodem
+	# cable, otherwise grub-bhyve will wait forever for
+	# user input. Wait 0.5 seconds for nmdm to open. This
+	# is a dirty work around against possible races.
+	true > $NMDMB &
+	sleep 0.5
+
+	/usr/local/sbin/grub-bhyve -r $BOOT -m $MAP -M $MEMORY -c $NMDMA $NAME &
+
+	wait $!
+
+	dbg "Calling bhyve"
+
+	if [ $CDROM = 0 ] ; then
+		/usr/sbin/bhyve -A -H -P -u -s 0:0,hostbridge -s 1:0,lpc \
+			-s 2:0,virtio-net,$TAP -s 3:0,ahci-hd,$HD -s 4:0,virtio-rnd \
+			-l com1,$NMDMA -c $CPUS -m $MEMORY $NAME > /dev/null 2>&1 & 
+	else
+		/usr/sbin/bhyve -A -H -P -u -s 0:0,hostbridge -s 1:0,lpc \
+			-s 2:0,virtio-net,$TAP -s 3:0,ahci-hd,$HD -s 4:0,ahci-cd,$CDROM \
+			-s 5:0,virtio-rnd -l com1,$NMDMA -c $CPUS -m $MEMORY $NAME \
+			> /dev/null 2>&1 &
+	fi 
+
+	return $!
+}
+
+# -------------------------------------------------------------------- #
+
 # Opens a serial console session
 # to the VM.
 console() {
@@ -233,49 +301,16 @@ runvm() {
 		echo "NMDMB=$NMDMB" >> $RTDIR/$NAME.state 
 		echo "ID=$ID" >> $RTDIR/$NAME.state
 
-		# Loader
+		# Load and run the VM
 		if [ $LOADER = "bhyve" ] ; then
-			dbg "Calling bhyveload"
-			if [ $BOOT = "cdrom" ] ; then
-				dbg "Booting from CDROM"
-				/usr/sbin/bhyveload -m $MEMORY -d $CDROM -c $NMDMA $NAME
-			elif [ $BOOT = "hd" ] ; then
-				dbg "Booting from harddisk"
-				/usr/sbin/bhyveload -m $MEMORY -d $HD -c $NMDMA $NAME
-			fi
+			run_bhyveload $TAP $NMDMA
+			PID=$?
 		fi
 
 		if [ $LOADER = "grub" ] ; then
-			dbg "Calling grub-bhyve"
-
-			# We need to write one bit into the virtual nullmodem
-			# cable, otherwise grub-bhyve will wait forever for
-			# user input. Wait 0.5 seconds for nmdm to open. This
-			# is a dirty work around against possible races.
-			true > $NMDMB &
-			sleep 0.5
-
-			/usr/local/sbin/grub-bhyve -r $BOOT -m $MAP -M $MEMORY -c $NMDMA $NAME &
-			PID=$!
-
-			wait $PID
+			run_grub $TAP $NMDMA $NMDMB
+			PID=$?
 		fi
-
-		# Start VM
-		dbg "Calling bhyve"
-
-		if [ $CDROM = 0 ] ; then
-			/usr/sbin/bhyve -A -H -P -u -s 0:0,hostbridge -s 1:0,lpc \
-				-s 2:0,virtio-net,$TAP -s 3:0,ahci-hd,$HD -s 4:0,virtio-rnd \
-				-l com1,$NMDMA -c $CPUS -m $MEMORY $NAME > /dev/null 2>&1 & 
-		else
-			/usr/sbin/bhyve -A -H -P -u -s 0:0,hostbridge -s 1:0,lpc \
-			    -s 2:0,virtio-net,$TAP -s 3:0,ahci-hd,$HD -s 4:0,ahci-cd,$CDROM \
-				-s 5:0,virtio-rnd -l com1,$NMDMA -c $CPUS -m $MEMORY $NAME \
-			   	> /dev/null 2>&1 &
-		fi
-
-		PID=$!
 
 		# Save PID
 		dbg "Saving PID to $RTDIR/$NAME.state" 
