@@ -176,6 +176,31 @@ run_bhyveload() {
 	return $!
 }
 
+# Run VM with bootrom
+run_bootrom() {
+	TAP=$1
+	NMDMA=$2
+
+	dbg "Calling bhyve"
+
+	# The UEFI firmware requires AHCI devices at slot
+	# 3, 4, 5 and 6. Otherwise the system will not boot.
+	# The LPC / ISA bus must be at port 31.
+	if [ $CDROM = 0 ] ; then
+		/usr/sbin/bhyve -A -H -P -u -w -s 0:0,hostbridge -s 3,ahci-hd,$HD \
+			-s 10,virtio-net,$TAP -s 11:0,virtio-rnd, -s 31,lpc \
+			-l com1,$NMDMA -l bootrom,$BOOTROM -c $CPUS -m $MEMORY $NAME \
+			> /dev/null 2>&1 &
+	else
+		/usr/sbin/bhyve -A -H -P -u -w -s 0:0,hostbridge -s 3,ahci-hd,$HD \
+			-s 4,ahci-cd,$CDROM -s 10,virtio-net,$TAP -s 11:0,virtio-rnd, \
+			-s 31,lpc -l com1,$NMDMA -l bootrom,$BOOTROM -c $CPUS -m $MEMORY \
+			$NAME > /dev/null 2>&1 &
+	fi
+
+	return $!
+}
+
 # Run VM with grub-bhyve
 run_grub() {
 	TAP=$1
@@ -304,6 +329,9 @@ runvm() {
 		# Load and run the VM
 		if [ $LOADER = "bhyve" ] ; then
 			run_bhyveload $TAP $NMDMA
+			PID=$?
+		elif [ $LOADER = "bootrom" ] ; then
+			run_bootrom $TAP $NMDMA
 			PID=$?
 		elif [ $LOADER = "grub" ] ; then
 			run_grub $TAP $NMDMA $NMDMB
