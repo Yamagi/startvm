@@ -49,7 +49,7 @@ SCRIPTPATH=`dirname "$SCRIPTPATH"`
 
 # Print usage.
 usage() {
-	echo "Usage: ./startvm.sh config_file cmd"
+	echo "Usage: ./startvm.sh [vmname] cmd"
 	echo ""
 	echo "Commands:"
 	echo " - cons:   Open a serial console to the guest"
