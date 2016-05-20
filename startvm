@@ -448,6 +448,12 @@ status() {
 
 # -------------------------------------------------------------------- #
 
+# Only as root. Prevents strange errors.
+if [ $(id -u) -ne 0 ] ; then
+	echo "Bhyve and this script must be run as root"
+	exit 1
+fi
+
 # Check if configuration dir exists
 if [ ! -d $VMDIR ] ; then
 	echo "$VMDIR doesn't exists or is not a directory"
