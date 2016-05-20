@@ -9,7 +9,7 @@ Installation
 ------------
 
 To install this script just clone the Github repository and symlink
-`startvm` somewhere into your path. Rename `system.cfg.sample' to
+`startvm` somewhere into your path. Rename `system.cfg.sample` to
 `system.cfg` and edit it to match your needs. The file must be in the
 same directory as the script itself!
 
