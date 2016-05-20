@@ -351,6 +351,9 @@ runvm() {
 		exit 1
 	fi
 
+	# Create working directory
+	mkdir -p $RTDIR
+
 	# Determine ID
 	generateid
 	ID=$?
@@ -424,14 +427,6 @@ runvm() {
 	/sbin/ifconfig $BRIDGE deletem $TAP up
 	/sbin/ifconfig $TAP destroy
 	rm $RTDIR/$NAME.state
-
-	# Cleanup if last process
-	ls $RTDIR/*state > /dev/null 2>&1
-
-	if [ $? -ne 0 ] ; then
-		dbg "Last process, removing state directory"
-		rm -Rf $RTDIR
-	fi
 }
 
 # Prints the status of VM.
@@ -452,9 +447,6 @@ status() {
 }
 
 # -------------------------------------------------------------------- #
-
-# Create state dir
-mkdir -p $RTDIR
 
 # Check if configuration dir exists
 if [ ! -d $VMDIR ] ; then
