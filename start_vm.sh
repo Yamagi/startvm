@@ -56,6 +56,7 @@ usage() {
 	echo " - halt:   Send an ACPI shutdown request to the guest"
 	echo " - help:   This message"
 	echo " - kill:   Kill the VM"
+	echo " - list:   List all known VMs"
 	echo " - run:    Run the VM"
 	echo " - status: Show status"
 	exit 1
@@ -293,6 +294,55 @@ killvm() {
 	kill -KILL $PID
 }
 
+# Prints a list of all known VMs
+listvms() {
+	dbg "Printing VMs in $VMDIR"
+
+	overall_len=0
+
+	for vm in $(ls $VMDIR) ; do
+		if [ ! -f "$VMDIR/$vm/config.cfg" ] ; then
+			continue
+		fi
+
+		if [ ${#vm} -gt $overall_len ] ; then
+			overall_len=${#vm}
+		fi
+	done
+
+	overall_len=$(($overall_len + 5))
+
+	for vm in $(ls $VMDIR) ; do
+		iteration=0
+		padding=""
+
+		if [ ! -f "$VMDIR/$vm/config.cfg" ] ; then
+			continue
+		fi
+
+		while [ $iteration -lt $(($overall_len - ${#vm})) ] ; do
+			padding="$padding."
+			iteration=$(($iteration + 1))
+		done
+
+		if [ -e $RTDIR/$vm.state ] ; then
+			if [ -e /dev/vmm/$vm ] ; then
+				state="Running"
+			else
+				state="Stale PID file"
+			fi
+		else
+			if [ -e /dev/vmm/$vm ] ; then
+				state="Stale VM instance"
+			else
+				state="Stopped"
+			fi
+		fi
+
+		printf "%s %s %s\n" "$vm" "$padding" "$state"
+	done
+}
+
 # Runs the VM.
 runvm() {
 	# Check if VM is still running
@@ -406,17 +456,42 @@ status() {
 # Create state dir
 mkdir -p $RTDIR
 
-# Command line processing
-if [ -z "$1" -o -z "$2" ] ; then
-   usage
-fi
-
-if [ ! -f "$1" ] ; then
-	echo "$1 doesn't exists or is not a regular file"
+# Check if configuration dir exists
+if [ ! -d $VMDIR ] ; then
+	echo "$VMDIR doesn't exists or is not a directory"
 	exit 1
 fi
 
-. $1
+# Single parameter commands
+if [ -z "$2" ] ; then
+    if [ ! -z "$1" ] ; then
+		case $1 in
+			list)
+				listvms
+				exit 0
+				;;
+			help)
+				usage
+				;;
+			*)
+				usage
+				;;
+		esac
+	else
+		usage
+	fi
+fi
+
+# Source VM config
+NAME=$1
+VMCFG="$VMDIR/$NAME/config.cfg"
+
+if [ ! -f "$VMCFG" ] ; then
+	echo "$NAME is not a valid VM"
+	exit 1
+fi
+
+. $VMCFG
 
 if [ $2 = "daemon" ] ; then
 	runvm
@@ -434,9 +509,12 @@ else
 		kill)
 			killvm
 			;;
+		list)
+			listvms
+			;;
 		run)
 			if [ $DAEMON -ne 0 ] ; then
-				becomedaemon $0 $1
+				becomedaemon $0 $NAME
 			else
 				runvm
 			fi

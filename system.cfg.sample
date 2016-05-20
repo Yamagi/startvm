@@ -15,4 +15,18 @@ EXTNIC=em0
 # for all instances, otherwise things
 # will fuck up!)
 RTDIR=/usr/vm/bhyve/work/
- 
+
+# Directory where the VM configurations
+# are stored. The directory layout is:
+#
+#  vm1/
+#	config.cfg
+#  vm2/
+#   config.cfg
+#
+# Of course the upper level directories
+# name must be unique. If the directory
+# doesn't contain a config.cfg it's not
+# recognized as a VM configuration.
+VMDIR=/usr/vm/bhyve/config
+
