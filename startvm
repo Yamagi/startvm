@@ -121,6 +121,29 @@ generateid() {
 	return $UID
 }
 
+# Resets the ID if the last instance exits.
+resetid() {
+	# Lock
+    while [ true ] ; do
+		if [ -e $RTDIR/id.lock ] ; then
+			sleep 0.1
+		else
+			touch $RTDIR/id.lock
+			break
+		fi
+	done
+
+	ls $RTDIR/*state > /dev/null 2>&1
+
+	if [ $? -ne 0 ] ; then
+		dbg "Last process, reseting ID"
+		rm -rf $RTDIR/id
+	fi
+
+	# Unlock
+	rm $RTDIR/id.lock
+}
+
 # Creates and configures a tap device.
 #  $1 -> ID of the VM
 createtap() {
@@ -471,6 +494,7 @@ runvm() {
 	/sbin/ifconfig $BRIDGE deletem $TAP up
 	/sbin/ifconfig $TAP destroy
 	rm $RTDIR/$NAME.state
+	resetid
 }
 
 # Prints the status of VM.
