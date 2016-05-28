@@ -37,6 +37,10 @@
 # All instances of this script must share the same configuration dir,
 # otherwise strange things will happen. To boot other guests beside
 # FreeBSD the sysutils/grub2-bhyve must be installed.
+#
+# If a vncviewer is installed, the script can launch it with the 'vnc'
+# command on supported VMs. net/tigervnc is reccommended. Otherwise
+# the VNC port is printed.
 
 # -------------------------------------------------------------------- #
 
@@ -59,6 +63,7 @@ usage() {
 	echo " - list:   List all known VMs"
 	echo " - run:    Run the VM"
 	echo " - status: Show status"
+	echo " - vcn:    Run vncviewer or print the VNC port"
 	exit 1
 }
 

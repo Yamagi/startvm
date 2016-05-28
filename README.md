@@ -20,6 +20,8 @@ The following kernel modules must be loaded:
 * vmm.ko
 
 If you want to boot Linux VMs sysutils/grub2-bhyve must be installed.
+If a vncviewer is installed, the script will start it with the 'vnc'
+command for supported VMs. net/tigervnc is recommended.
 
 
 Usage
@@ -38,4 +40,5 @@ into it, alter it to your needs. Now you're ready to start your VM:
      - list:   List all known VMs
      - run:    Run the VM
      - status: Show status
+     - vcn:    Run vncviewer or print the VNC port
 
