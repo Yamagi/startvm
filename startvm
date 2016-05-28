@@ -63,7 +63,7 @@ usage() {
 	echo " - list:   List all known VMs"
 	echo " - run:    Run the VM"
 	echo " - status: Show status"
-	echo " - vcn:    Run vncviewer or print the VNC port"
+	echo " - vnc:    Run vncviewer or print the VNC port"
 	exit 1
 }
 
