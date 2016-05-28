@@ -163,8 +163,8 @@ createtap() {
 
 # Transforms the process into a daemon.
 becomedaemon() {
-	dbg "Respawning a daemon"
-	/usr/sbin/daemon -f $1 $2 daemon
+	dbg "Respawning as daemon"
+	/usr/sbin/daemon -f $1 daemon $2
 }
 
 
@@ -538,27 +538,28 @@ if [ ! -d $VMDIR ] ; then
 fi
 
 # Single parameter commands
-if [ -z "$2" ] ; then
-    if [ ! -z "$1" ] ; then
-		case $1 in
-			list)
-				listvms
-				exit 0
-				;;
-			help)
-				usage
-				;;
-			*)
-				usage
-				;;
-		esac
-	else
-		usage
-	fi
+if [ $# -eq 1 ] ; then
+	case $1 in
+		list)
+			listvms
+			;;
+		help)
+			usage
+			;;
+		*)
+			usage
+			;;
+	esac
+
+	exit 0
+fi
+
+if [ $# -ne 2 ] ; then
+	usage
 fi
 
 # Source VM config
-NAME=$1
+NAME=$2
 VMCFG="$VMDIR/$NAME/config.cfg"
 
 if [ ! -f "$VMCFG" ] ; then
@@ -568,10 +569,10 @@ fi
 
 . $VMCFG
 
-if [ $2 = "daemon" ] ; then
+if [ $1 = "daemon" ] ; then
 	runvm
 else
-	case $2 in
+	case $1 in
 		cons)
 			console
 			;;
