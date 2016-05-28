@@ -531,6 +531,29 @@ status() {
 	fi
 }
 
+# Opens vncviewer for the VM or returns the VNC port.
+vnc() {
+	if [ ! $LOADER = "bootrom_gop" ] ; then
+		echo "Not a GOP VM"
+		exit 1
+	fi
+
+	if [ ! -e $RTDIR/$NAME.state ] ; then
+		echo "VM is not running"
+		exit 1
+	fi
+
+	. $RTDIR/$NAME.state
+
+	if [ ! -f "/usr/local/bin/vncviewer" ] ; then
+		dbg "/usr/local/bin/vncviewer doesn't exists"
+		echo "VNC port: $VNC"
+	else
+		dbg "Launching /usr/local/bin/vncviewer"
+		/usr/local/bin/vncviewer 0.0.0.0:$VNC 2>&1 &
+	fi
+}
+
 # -------------------------------------------------------------------- #
 
 # Check if configuration dir exists
@@ -599,6 +622,9 @@ else
 			;;
 		status)
 			status
+			;;
+		vnc)
+			vnc
 			;;
 		*)
 			usage
