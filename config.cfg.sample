@@ -23,6 +23,7 @@ CDROM=0
 #  - 'bhyve' for FreeBSD
 #  - 'grub' for systems supported by grub
 #  - 'bootrom' for UEFI / BIOS firmware
+#  - 'bootrom_gop' for UEFI with VNC bridge
 LOADER=bhyve
 
 # When the bootloader is set to 'bootrom' this
@@ -41,3 +42,29 @@ MAP=/path/to/system.map
 # 'bootrom' always tries to boot from CD if one is
 # present. Of course it needs to be bootable.
 BOOT=hd
+
+# --------
+
+# Resolution for the virtual GOP display, exported
+# through VNC. At this time only a small number of
+# fixed resolutions are available:
+#  - 1920x1200
+#  - 1920x1080
+#  - 1600x1200
+#  - 1600x900
+#  - 1280x1024
+#  - 1280x720
+#  - 1024x768
+#  - 800x600
+#  - 640x480
+GOP_WIDTH=1600
+GOP_HEIGHT=1200
+
+# Wait for a VNC connection before booting the VM.
+GOP_WAIT=1
+
+# Emulate an USB tablet. If this option is set 0
+# a classic PS/2 mouse is emulated. The tablet
+# tracks the VNC cursor much better, but it's
+# available only on Linux and Windows >8.
+GOP_TABLET=1
