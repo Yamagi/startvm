@@ -164,13 +164,13 @@ run_bhyveload() {
 	dbg "Calling bhyve"
 
 	if [ $CDROM = 0 ] ; then
-		/usr/sbin/bhyve -A -H -P -u -s 0:0,hostbridge -s 1:0,lpc \
-			-s 2:0,virtio-net,$TAP -s 3:0,ahci-hd,$HD -s 4:0,virtio-rnd \
+		/usr/sbin/bhyve -A -H -P -u -s 0,hostbridge -s 1,lpc \
+			-s 2,virtio-net,$TAP -s 3,ahci-hd,$HD -s 4,virtio-rnd \
 			-l com1,$NMDMA -c $CPUS -m $MEMORY $NAME > /dev/null 2>&1 &
 	else
-		/usr/sbin/bhyve -A -H -P -u -s 0:0,hostbridge -s 1:0,lpc \
-			-s 2:0,virtio-net,$TAP -s 3:0,ahci-hd,$HD -s 4:0,ahci-cd,$CDROM \
-			-s 5:0,virtio-rnd -l com1,$NMDMA -c $CPUS -m $MEMORY $NAME \
+		/usr/sbin/bhyve -A -H -P -u -s 0,hostbridge -s 1,lpc \
+			-s 2,virtio-net,$TAP -s 3,ahci-hd,$HD -s 4,ahci-cd,$CDROM \
+			-s 5,virtio-rnd -l com1,$NMDMA -c $CPUS -m $MEMORY $NAME \
 			> /dev/null 2>&1 &
 	fi
 
@@ -188,13 +188,13 @@ run_bootrom() {
 	# 3, 4, 5 and 6. Otherwise the system will not boot.
 	# The LPC / ISA bus should be at port 31.
 	if [ $CDROM = 0 ] ; then
-		/usr/sbin/bhyve -A -H -P -u -w -s 0:0,hostbridge -s 3,ahci-hd,$HD \
-			-s 10,virtio-net,$TAP -s 11:0,virtio-rnd, -s 31,lpc \
+		/usr/sbin/bhyve -A -H -P -u -w -s 0,hostbridge -s 3,ahci-hd,$HD \
+			-s 10,virtio-net,$TAP -s 11,virtio-rnd, -s 31,lpc \
 			-l com1,$NMDMA -l bootrom,$BOOTROM -c $CPUS -m $MEMORY $NAME \
 			> /dev/null 2>&1 &
 	else
-		/usr/sbin/bhyve -A -H -P -u -w -s 0:0,hostbridge -s 3,ahci-hd,$HD \
-			-s 4,ahci-cd,$CDROM -s 10,virtio-net,$TAP -s 11:0,virtio-rnd, \
+		/usr/sbin/bhyve -A -H -P -u -w -s 0,hostbridge -s 3,ahci-hd,$HD \
+			-s 4,ahci-cd,$CDROM -s 10,virtio-net,$TAP -s 11,virtio-rnd, \
 			-s 31,lpc -l com1,$NMDMA -l bootrom,$BOOTROM -c $CPUS -m $MEMORY \
 			$NAME > /dev/null 2>&1 &
 	fi
@@ -261,13 +261,13 @@ run_grub() {
 	dbg "Calling bhyve"
 
 	if [ $CDROM = 0 ] ; then
-		/usr/sbin/bhyve -A -H -P -u -s 0:0,hostbridge -s 1:0,lpc \
-			-s 2:0,virtio-net,$TAP -s 3:0,ahci-hd,$HD -s 4:0,virtio-rnd \
+		/usr/sbin/bhyve -A -H -P -u -s 0,hostbridge -s 1,lpc \
+			-s 2,virtio-net,$TAP -s 3,ahci-hd,$HD -s 4,virtio-rnd \
 			-l com1,$NMDMA -c $CPUS -m $MEMORY $NAME > /dev/null 2>&1 &
 	else
-		/usr/sbin/bhyve -A -H -P -u -s 0:0,hostbridge -s 1:0,lpc \
-			-s 2:0,virtio-net,$TAP -s 3:0,ahci-hd,$HD -s 4:0,ahci-cd,$CDROM \
-			-s 5:0,virtio-rnd -l com1,$NMDMA -c $CPUS -m $MEMORY $NAME \
+		/usr/sbin/bhyve -A -H -P -u -s 0,hostbridge -s 1,lpc \
+			-s 2,virtio-net,$TAP -s 3,ahci-hd,$HD -s 4,ahci-cd,$CDROM \
+			-s 5,virtio-rnd -l com1,$NMDMA -c $CPUS -m $MEMORY $NAME \
 			> /dev/null 2>&1 &
 	fi
 
