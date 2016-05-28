@@ -167,6 +167,15 @@ becomedaemon() {
 	/usr/sbin/daemon -f $1 $2 daemon
 }
 
+
+# Aborts if not running as root.
+asroot() {
+	if [ $(id -u) -ne 0 ] ; then
+		echo "This can only be done as root."
+		exit 1
+	fi
+}
+
 # -------------------------------------------------------------------- #
 
 # Runs a VM with bhyveload
@@ -320,6 +329,8 @@ console() {
 # It will generate an ACPI shutdown
 # event and send it to the guest.
 haltvm() {
+	asroot
+
  	if [ ! -e $RTDIR/$NAME.state ] ; then
 		echo "VM is not running"
 		exit 1
@@ -338,6 +349,8 @@ haltvm() {
 
 # Kills a VM by sending SIGKILL.
 killvm() {
+	asroot
+
   	if [ ! -e $RTDIR/$NAME.state ] ; then
 		echo "VM is not running"
 		exit 1
@@ -405,6 +418,8 @@ listvms() {
 
 # Runs the VM.
 runvm() {
+	asroot
+
 	# Check if VM is still running
 	if [ -e /dev/vmm/$NAME ] ; then
 		echo "VM is still running."
@@ -515,12 +530,6 @@ status() {
 }
 
 # -------------------------------------------------------------------- #
-
-# Only as root. Prevents strange errors.
-if [ $(id -u) -ne 0 ] ; then
-	echo "Bhyve and this script must be run as root"
-	exit 1
-fi
 
 # Check if configuration dir exists
 if [ ! -d $VMDIR ] ; then
