@@ -311,6 +311,8 @@ run_grub() {
 # Opens a serial console session
 # to the VM.
 console() {
+	asroot
+
 	if [ ! -e $RTDIR/$NAME.state ] ; then
 		echo "VM is not running"
 		exit 1
