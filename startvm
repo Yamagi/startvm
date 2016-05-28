@@ -423,6 +423,19 @@ listvms() {
 	done
 }
 
+# Prints a newline seperated list of all VMs
+plainlistvms() {
+	dbg "Printing VMs in $VMDIR"
+
+	for vm in $(ls $VMDIR) ; do
+		if [ ! -f "$VMDIR/$vm/config.cfg" ] ; then
+			continue
+		fi
+
+		echo $vm
+	done
+}
+
 # Runs the VM.
 runvm() {
 	asroot
@@ -572,6 +585,9 @@ if [ $# -eq 1 ] ; then
 	case $1 in
 		list)
 			listvms
+			;;
+		plainlist)
+			plainlistvms
 			;;
 		help)
 			usage
