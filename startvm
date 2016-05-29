@@ -250,7 +250,7 @@ run_bootrom_gop() {
 	CMD="/usr/sbin/bhyve -A -H -P -u -w -s 0,hostbridge "
 	CMD="$CMD -s 3,ahci-hd,$HD "
 
-	if [ $CDROM = 1 ] ; then
+	if [ $CDROM != 0 ] ; then
 		CMD="$CMD -s 4,ahci-cd,$CDROM "
 	fi
 
