@@ -68,3 +68,10 @@ GOP_WAIT=1
 # tracks the VNC cursor much better, but it's
 # available only on Linux and Windows >8.
 GOP_TABLET=1
+
+# If not set to 0 this is the sector size of the
+# emulated AHCI harddisk. This is needed for Win
+# 7 which requries 512 sectors and not the more
+# correct 4096 or even 8192 sectors determined by
+# Bhyve.
+GOP_SECTORSIZE=0
