@@ -1,0 +1,61 @@
+#!/bin/sh
+#
+# PROVIDE: startvm
+# REQUIRE: LOGIN FILESYSTEMS
+# BEFORE: securelevel
+# KEYWORD: nojail shutdown
+
+# ----
+
+. /etc/rc.subr
+
+name="startvm"
+rcvar=startvm_enable
+
+start_cmd="startvm_start"
+stop_cmd="startvm_stop"
+
+# ----
+
+startvm_start()
+{
+	echo -n "Starting Bhyve VMs: "
+
+	for _v in ${startvm_list} ; do
+		echo -n "$_v "
+		$startvm_binary run $_v
+	done
+
+	echo
+}
+
+startvm_stop()
+{
+	echo -n "Stopping Bhyve VMs: "
+	
+	for _v in ${startvm_list} ; do
+		echo -n "$_v "
+		$startvm_binary halt $_v
+	done
+
+	echo
+}
+
+# ----
+
+load_rc_config $name
+: ${startvm_enable="NO"}
+: ${startvm_binary="/usr/opt/startvm/bin/startvm"}
+
+cmd="$1"
+
+if [ $# -gt 0 ]; then
+	shift
+fi
+
+if [ -n "$*" ]; then
+	startvm_list="$*"
+fi
+
+run_rc_command "$cmd"
+
