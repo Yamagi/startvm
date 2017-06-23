@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (c) 2014 - 2016 Yamagi Burmeister
+# Copyright (c) 2014 - 2017 Yamagi Burmeister
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -67,11 +67,99 @@ usage() {
 	exit 1
 }
 
+# -------------------------------------------------------------------- #
+
 # Debug output.
 dbg() {
 	if [ $DEBUG -ne 0 ] ; then
-		echo $1
+		echo $@
 	fi
+}
+
+# Builds a command list containing all
+# given CDROMs connected to one disk
+# controller.
+buildcdromlist() {
+	CMD=""
+
+	if [ $CDROM -eq 0 ] ; then
+		return
+	fi
+
+	# Compatibility cruft for old configs
+	if [ ! -f $CDROM ] ; then
+		CMD="$CDROM -s 4,ahci-cd,$CDROM"
+
+		if [ $GOP_SECTORSIZE != 0 ] ; then
+			CMD="$CMD,sectorsize=$GOP_SECTORSIZE "
+		else
+			CMD="$CMD "
+		fi
+	else
+		CNT=0
+
+		for CDROM in $(listvariables CDROM[0-9]\*) ; do
+			# Evil hack to evalute the contents of $CDROM
+			# as variable. For example: $$CDROM -> $CDROM0
+			# -> /path/to/iso
+			eval CDROM=\"\$$CDROM\"
+
+			CMD="$CMD -s 4:$CNT,ahci-cd,$CDROM"
+
+			if [ $GOP_SECTORSIZE != 0 ] ; then
+				CMD="$CMD,sectorsize=$GOP_SECTORSIZE "
+			else
+				CMD="$CMD "
+			fi
+
+			CNT=$(($CNT + 1))
+		done
+	fi
+
+	echo "$CMD"
+}
+
+# Builds a command list containing all
+# given HDDs connected to one disk
+# controller.
+buildhddlist() {
+	CMD=""
+
+	if [ -z $HDTYPE ] ; then
+		HDTYPE=ahci-hd
+	fi
+
+	# Compatibility cruft for old configs
+	if [ ! -f $HD ] ; then
+		CMD="$CMD -s 3,$HDTYPE,$HD"
+
+		if [ $GOP_SECTORSIZE != 0 ] ; then
+			CMD="$CMD,sectorsize=$GOP_SECTORSIZE "
+		else
+			CMD="$CMD "
+		fi
+	else
+		CNT=0
+
+		for HDD in $(listvariables HD[0-9]\*) ; do
+			# Evil hack to evalute the contents of $HDD
+			# as variable. For example: $$HDD -> $HD0 ->
+			# /path/to/image
+			eval HDD=\"\$$HDD\"
+
+			CMD="$CMD -s 3:$CNT,$HDTYPE,$HDD"
+
+			if [ $GOP_SECTORSIZE != 0 ] ; then
+				CMD="$CMD,sectorsize=$GOP_SECTORSIZE "
+			else
+				CMD="$CMD "
+			fi
+
+			CNT=$(($CNT + 1))
+		done
+	fi
+
+	echo "$CMD"
 }
 
 # Checks if $BRIDGE exists and creates
@@ -124,6 +212,23 @@ generateid() {
 	rm $RTDIR/id.lock
 
 	return $UID
+}
+
+# Lists all set variables that match a pattern.
+#  $1 -> Pattern
+listvariables() {
+	for VAR in $(set) ; do
+		VAR="${VAR%%=*}"
+
+		case "$VAR" in
+			$1)
+				echo $VAR
+				;;
+			*)
+				continue
+				;;
+		esac
+	done
 }
 
 # Resets the ID if the last instance exits.
@@ -192,24 +297,30 @@ run_bhyveload() {
 
 	if [ $BOOT = "cdrom" ] ; then
 		dbg "Booting from CDROM"
-		/usr/sbin/bhyveload -m $MEMORY -d $CDROM -c $NMDMA $NAME
+
+		# Compatibility cruft for old configs
+		if [ -z $CDROM0 ] ; then
+			/usr/sbin/bhyveload -m $MEMORY -d $CDROM -c $NMDMA $NAME
+		else
+			/usr/sbin/bhyveload -m $MEMORY -d $CDROM0 -c $NMDMA $NAME
+		fi
 	elif [ $BOOT = "hd" ] ; then
 		dbg "Booting from harddisk"
-		/usr/sbin/bhyveload -m $MEMORY -d $HD -c $NMDMA $NAME
+
+		# Compatibility cruft for old configs
+		if [ -z $HD0 ] ; then
+			/usr/sbin/bhyveload -m $MEMORY -d $HD -c $NMDMA $NAME
+		else
+			/usr/sbin/bhyveload -m $MEMORY -d $HD0 -c $NMDMA $NAME
+		fi
 	fi
 
 	dbg "Calling bhyve"
 
-	if [ $CDROM = 0 ] ; then
-		/usr/sbin/bhyve -A -H -P -u -s 0,hostbridge -s 1,lpc \
-			-s 2,virtio-net,$TAP -s 3,ahci-hd,$HD -s 4,virtio-rnd \
-			-l com1,$NMDMA -c $CPUS -m $MEMORY $NAME > /dev/null 2>&1 &
-	else
-		/usr/sbin/bhyve -A -H -P -u -s 0,hostbridge -s 1,lpc \
-			-s 2,virtio-net,$TAP -s 3,ahci-hd,$HD -s 4,ahci-cd,$CDROM \
-			-s 5,virtio-rnd -l com1,$NMDMA -c $CPUS -m $MEMORY $NAME \
-			> /dev/null 2>&1 &
-	fi
+	/usr/sbin/bhyve -A -H -P -u -s 0,hostbridge -s 1,lpc \
+		-s 2,virtio-net,$TAP $(buildhddlist) $(buildcdromlist) \
+		-s 5,virtio-rnd -l com1,$NMDMA -c $CPUS -m $MEMORY $NAME \
+		> /dev/null 2>&1 &
 
 	return $!
 }
@@ -221,20 +332,10 @@ run_bootrom() {
 
 	dbg "Calling bhyve"
 
-	# The UEFI CSM firmware requires AHCI devices at slot
-	# 3, 4, 5 and 6. Otherwise the system will not boot.
-	# The LPC / ISA bus should be at port 31.
-	if [ $CDROM = 0 ] ; then
-		/usr/sbin/bhyve -H -P -u -w -s 0,hostbridge -s 3,ahci-hd,$HD \
-			-s 10,virtio-net,$TAP -s 11,virtio-rnd, -s 31,lpc \
-			-l com1,$NMDMA -l bootrom,$BOOTROM -c $CPUS -m $MEMORY $NAME \
-			> /dev/null 2>&1 &
-	else
-		/usr/sbin/bhyve -H -P -u -w -s 0,hostbridge -s 3,ahci-hd,$HD \
-			-s 4,ahci-cd,$CDROM -s 10,virtio-net,$TAP -s 11,virtio-rnd, \
-			-s 31,lpc -l com1,$NMDMA -l bootrom,$BOOTROM -c $CPUS -m $MEMORY \
-			$NAME > /dev/null 2>&1 &
-	fi
+	/usr/sbin/bhyve -H -P -u -w -s 0,hostbridge $(buildhddlist) \
+		$(buildcdromlist) -s 10,virtio-net,$TAP -s 11,virtio-rnd, \
+		-s 31,lpc -l com1,$NMDMA -l bootrom,$BOOTROM -c $CPUS -m $MEMORY \
+		$NAME > /dev/null 2>&1 &
 
 	return $!
 }
@@ -248,19 +349,8 @@ run_bootrom_gop() {
 	dbg "Calling bhyve"
 
 	CMD="/usr/sbin/bhyve -H -P -u -w -s 0,hostbridge "
-	CMD="$CMD -s 3,ahci-hd,$HD"
-
-	if [ $GOP_SECTORSIZE != 0 ] ; then
-		CMD="$CMD,sectorsize=$GOP_SECTORSIZE "
-	else
-		CMD="$CMD "
-	fi
-
-	if [ $CDROM != 0 ] ; then
-		CMD="$CMD -s 4,ahci-cd,$CDROM "
-	fi
-
-	CMD="$CMD -s 11,fbuf,tcp=0.0.0.0:$VNC,w=$GOP_WIDTH,h=$GOP_HEIGHT"
+	CMD="$CMD $(buildhddlist) $(buildcdromlist) "
+	CMD="$CMD -s 11,fbuf,tcp=0.0.0.0:$VNC,w=$GOP_WIDTH,h=$GOP_HEIGHT "
 
 	if [ $GOP_WAIT = 1 ] ; then
 		CMD="$CMD,wait "
@@ -303,16 +393,10 @@ run_grub() {
 
 	dbg "Calling bhyve"
 
-	if [ $CDROM = 0 ] ; then
-		/usr/sbin/bhyve -A -H -P -u -s 0,hostbridge -s 1,lpc \
-			-s 2,virtio-net,$TAP -s 3,ahci-hd,$HD -s 4,virtio-rnd \
-			-l com1,$NMDMA -c $CPUS -m $MEMORY $NAME > /dev/null 2>&1 &
-	else
-		/usr/sbin/bhyve -A -H -P -u -s 0,hostbridge -s 1,lpc \
-			-s 2,virtio-net,$TAP -s 3,ahci-hd,$HD -s 4,ahci-cd,$CDROM \
-			-s 5,virtio-rnd -l com1,$NMDMA -c $CPUS -m $MEMORY $NAME \
-			> /dev/null 2>&1 &
-	fi
+	/usr/sbin/bhyve -A -H -P -u -s 0,hostbridge -s 1,lpc \
+		-s 2,virtio-net,$TAP $(buildhddlist) $(buildcdromlist) \
+		-s 5,virtio-rnd -l com1,$NMDMA -c $CPUS -m $MEMORY $NAME \
+		> /dev/null 2>&1 &
 
 	return $!
 }
