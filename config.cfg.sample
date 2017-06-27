@@ -8,7 +8,8 @@ MEMORY=4096M
 
 # Harddisk images for this VM. HDDs can be numbered,
 # all HDDs are attached to the same controller. HD0 is
-# the boot device.
+# always the boot device.
+# (0 for no HDD).
 HD0=/path/to/image
 
 # CDROM image for this VM

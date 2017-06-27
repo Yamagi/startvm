@@ -82,19 +82,13 @@ dbg() {
 buildcdromlist() {
 	CMD=""
 
-	if [ $CDROM -eq 0 ] ; then
-		return
-	fi
-
 	# Compatibility cruft for old configs
-	if [ ! -f $CDROM ] ; then
-		CMD="$CDROM -s 4,ahci-cd,$CDROM"
-
-		if [ $GOP_SECTORSIZE != 0 ] ; then
-			CMD="$CMD,sectorsize=$GOP_SECTORSIZE "
-		else
-			CMD="$CMD "
+	if [ ! -z $CDROM ] ; then
+		if [ $CDROM == "0" ] ; then
+			return
 		fi
+
+		CMD="$CMD -s 4,ahci-cd,$CDROM "
 	else
 		CNT=0
 
@@ -104,14 +98,11 @@ buildcdromlist() {
 			# -> /path/to/iso
 			eval CDROM=\"\$$CDROM\"
 
-			CMD="$CMD -s 4:$CNT,ahci-cd,$CDROM"
-
-			if [ $GOP_SECTORSIZE != 0 ] ; then
-				CMD="$CMD,sectorsize=$GOP_SECTORSIZE "
-			else
-				CMD="$CMD "
+			if [ $CDROM == "0" ] ; then
+				continue
 			fi
 
+			CMD="$CMD -s 4:$CNT,ahci-cd,$CDROM "
 			CNT=$(($CNT + 1))
 		done
 	fi
@@ -130,13 +121,26 @@ buildhddlist() {
 	fi
 
 	# Compatibility cruft for old configs
-	if [ ! -f $HD ] ; then
+	if [ ! -z $HD ] ; then
+		if [ $HD == "0" ] ; then
+			return
+		fi
+
 		CMD="$CMD -s 3,$HDTYPE,$HD"
 
-		if [ $GOP_SECTORSIZE != 0 ] ; then
-			CMD="$CMD,sectorsize=$GOP_SECTORSIZE "
+		# Even more cruft
+		if [ -z $SECTORSIZE ] ; then
+			if [ $GOP_SECTORSIZE != 0 ] ; then
+				CMD="$CMD,sectorsize=$GOP_SECTORSIZE "
+			else
+				CMD="$CMD "
+			fi
 		else
-			CMD="$CMD "
+			if [ $SECTORSIZE != 0 ] ; then
+				CMD="$CMD,sectorsize=$SECTORSIZE "
+			else
+				CMD="$CMD "
+			fi
 		fi
 	else
 		CNT=0
@@ -147,12 +151,25 @@ buildhddlist() {
 			# /path/to/image
 			eval HDD=\"\$$HDD\"
 
+			if [ $HDD == "0" ] ; then
+				continue
+			fi
+
 			CMD="$CMD -s 3:$CNT,$HDTYPE,$HDD"
 
-			if [ $GOP_SECTORSIZE != 0 ] ; then
-				CMD="$CMD,sectorsize=$GOP_SECTORSIZE "
+			# Even more cruft
+			if [ -z $SECTORSIZE ] ; then
+				if [ $GOP_SECTORSIZE != 0 ] ; then
+					CMD="$CMD,sectorsize=$GOP_SECTORSIZE "
+				else
+					CMD="$CMD "
+				fi
 			else
-				CMD="$CMD "
+				if [ $SECTORSIZE != 0 ] ; then
+					CMD="$CMD,sectorsize=$SECTORSIZE "
+				else
+					CMD="$CMD "
+				fi
 			fi
 
 			CNT=$(($CNT + 1))
@@ -350,7 +367,7 @@ run_bootrom_gop() {
 
 	CMD="/usr/sbin/bhyve -H -P -u -w -s 0,hostbridge "
 	CMD="$CMD $(buildhddlist) $(buildcdromlist) "
-	CMD="$CMD -s 11,fbuf,tcp=0.0.0.0:$VNC,w=$GOP_WIDTH,h=$GOP_HEIGHT "
+	CMD="$CMD -s 11,fbuf,tcp=0.0.0.0:$VNC,w=$GOP_WIDTH,h=$GOP_HEIGHT"
 
 	if [ $GOP_WAIT = 1 ] ; then
 		CMD="$CMD,wait "
