@@ -215,20 +215,42 @@ generateid() {
 		fi
 	done
 
+	dbg "Generating ID"
+
 	# Create ID
 	if [ -e $RTDIR/id ] ; then
 		. $RTDIR/id
-		UID=$((UID + 1))
+
+		for COUNT in $(seq 0 99) ; do
+			MATCH=0
+
+			for id in $UID ; do
+				if [ $COUNT -eq $id ] ; then
+					MATCH=1
+				fi
+			done
+
+			# Mkay, this ID is unused.
+			if [ $MATCH -eq 0 ] ; then
+				echo "UID=\"$UID $COUNT\"" > $RTDIR/id
+				rm $RTDIR/id.lock
+
+				return $COUNT
+			fi
+		done
+
+		# If we're here we're unable to find an ID.
+		dbg "Maximum ID reached, sorry."
+
+		rm $RTDIR/id.lock
+		exit 1
 	else
-		UID=0
+		# Save and unlock
+		echo "UID=\"0\"" > $RTDIR/id
+		rm $RTDIR/id.lock
+
+		return 0
 	fi
-
-	echo "UID=$UID" > $RTDIR/id
-
-	# Unlock
-	rm $RTDIR/id.lock
-
-	return $UID
 }
 
 # Lists all set variables that match a pattern.
@@ -248,8 +270,9 @@ listvariables() {
 	done
 }
 
-# Resets the ID if the last instance exits.
-resetid() {
+# Removes the given ID from the list of used IDs.
+#  $1 -> ID to remove
+removeid() {
 	# Lock
     while [ true ] ; do
 		if [ -e $RTDIR/id.lock ] ; then
@@ -265,6 +288,19 @@ resetid() {
 	if [ $? -ne 0 ] ; then
 		dbg "Last process, resetting ID"
 		rm -rf $RTDIR/id
+	else
+		dbg "Not the last processing, freeing ID"
+        . $RTDIR/id
+
+		IDS=""
+
+		for ID in $UID ; do
+			if [ $ID -ne $1 ] ; then
+				IDS="$IDS$ID "
+			fi
+		done
+
+		echo "UID=\"$IDS\"" > $RTDIR/id
 	fi
 
 	# Unlock
@@ -636,7 +672,7 @@ runvm() {
 	/sbin/ifconfig $BRIDGE deletem $TAP up
 	/sbin/ifconfig $TAP destroy
 	rm $RTDIR/$NAME.state
-	resetid
+	removeid $ID
 }
 
 # Prints the status of VM.
