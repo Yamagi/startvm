@@ -146,7 +146,7 @@ buildhddlist() {
 		CNT=0
 
 		for HDD in $(listvariables HD[0-9]\*) ; do
-			# Evil hack to evalute the contents of $HDD
+			# Evil hack to evaluate the contents of $HDD
 			# as variable. For example: $$HDD -> $HD0 ->
 			# /path/to/image
 			eval HDD=\"\$$HDD\"
@@ -263,7 +263,7 @@ resetid() {
 	ls $RTDIR/*state > /dev/null 2>&1
 
 	if [ $? -ne 0 ] ; then
-		dbg "Last process, reseting ID"
+		dbg "Last process, resetting ID"
 		rm -rf $RTDIR/id
 	fi
 
@@ -283,7 +283,7 @@ createtap() {
 		/sbin/ifconfig $BRIDGE addm tap$1 stp tap$1 up
 		return $1
 	else
-		echo "tap$1 already existant"
+		echo "tap$1 already existent"
 		exit 1
 	fi
 }
@@ -481,7 +481,7 @@ killvm() {
 	kill -KILL $PID
 }
 
-# Prints a list of all known VMs
+# Prints a list of all known VMs.
 listvms() {
 	dbg "Printing VMs in $VMDIR"
 
@@ -530,7 +530,7 @@ listvms() {
 	done
 }
 
-# Prints a newline seperated list of all VMs
+# Prints a newline separated list of all VMs.
 plainlistvms() {
 	dbg "Printing VMs in $VMDIR"
 
@@ -759,3 +759,4 @@ else
 			;;
 	esac
 fi
+

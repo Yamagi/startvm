@@ -2,7 +2,7 @@ StartVM
 =======
 
 StartVM (`startvm`) is a shell script to run and manage Bhyve virtual
-machines. It's just a simple wrapper, intented to easy Bhyve usage.
+machines. It's just a simple wrapper, indented to easy Bhyve usage.
 
 
 Installation
@@ -40,5 +40,5 @@ into it, alter it to your needs. Now you're ready to start your VM:
      - list:   List all known VMs
      - run:    Run the VM
      - status: Show status
-     - vcn:    Run vncviewer or print the VNC port
+     - vnc:    Run vncviewer or print the VNC port
 
