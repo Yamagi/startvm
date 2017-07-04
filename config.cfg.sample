@@ -12,9 +12,14 @@ MEMORY=4096M
 # (0 for no HDD).
 HD0=/path/to/image
 
-# CDROM image for this VM
+# CDROM image for this VM.
 # (0 for no CDROM)
 CDROM0=0
+
+# Bridge for network access. If the bridge doesn't
+# exists, it's created and the EXTNIC added to it.
+BRIDGE=bridge0
+EXTNIC=em0
 
 # --------
 
