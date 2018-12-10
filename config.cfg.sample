@@ -63,6 +63,13 @@ HDTYPE=ahci-hd
 
 # --------
 
+# Hostbridge type. Supported types are:
+#  - 'hostbridge' for a standard Intel hostbride.
+#  - 'amd_hostbridge' for an AMD hostbridge.
+HOSTBRIDGE=hostbridge
+
+# --------
+
 # Resolution for the virtual GOP display, exported
 # through VNC. At this time only a small number of
 # fixed resolutions are available:

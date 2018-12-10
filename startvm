@@ -368,9 +368,14 @@ run_bhyveload() {
 		fi
 	fi
 
+	# Compatibility with old configs.
+	if [ -z $HOSTBRIDGE ] ; then
+		HOSTBRIDGE=hostbridge
+	fi
+
 	dbg "Calling bhyve"
 
-	/usr/sbin/bhyve -A -H -P -u -s 0,hostbridge -s 1,lpc \
+	/usr/sbin/bhyve -A -H -P -u -s 0,$HOSTBRIDGE -s 1,lpc \
 		-s 2,virtio-net,$TAP $(buildhddlist) $(buildcdromlist) \
 		-s 5,virtio-rnd -l com1,$NMDMA -c $CPUS -m $MEMORY $NAME \
 		> /dev/null 2>&1 &
@@ -383,9 +388,14 @@ run_bootrom() {
 	TAP=$1
 	NMDMA=$2
 
+	# Compatibility with old configs.
+	if [ -z $HOSTBRIDGE ] ; then
+		HOSTBRIDGE=hostbridge
+	fi
+
 	dbg "Calling bhyve"
 
-	/usr/sbin/bhyve -H -P -u -w -s 0,hostbridge $(buildhddlist) \
+	/usr/sbin/bhyve -H -P -u -w -s 0,$HOSTBRIDGE $(buildhddlist) \
 		$(buildcdromlist) -s 10,virtio-net,$TAP -s 11,virtio-rnd, \
 		-s 31,lpc -l com1,$NMDMA -l bootrom,$BOOTROM -c $CPUS -m $MEMORY \
 		$NAME > /dev/null 2>&1 &
@@ -399,9 +409,14 @@ run_bootrom_gop() {
 	NMDMA=$2
 	VNC=$3
 
+	# Compatibility with old configs.
+	if [ -z $HOSTBRIDGE ] ; then
+		HOSTBRIDGE=hostbridge
+	fi
+
 	dbg "Calling bhyve"
 
-	CMD="/usr/sbin/bhyve -H -P -u -w -s 0,hostbridge "
+	CMD="/usr/sbin/bhyve -H -P -u -w -s 0,$HOSTBRIDGE"
 	CMD="$CMD $(buildhddlist) $(buildcdromlist) "
 	CMD="$CMD -s 11,fbuf,tcp=0.0.0.0:$VNC,w=$GOP_WIDTH,h=$GOP_HEIGHT"
 
@@ -420,6 +435,7 @@ run_bootrom_gop() {
 	CMD="$CMD -s 31,lpc -l com1,$NMDMA -l bootrom,$BOOTROM "
 	CMD="$CMD -c $CPUS -m $MEMORY $NAME"
 
+	echo "$CMD"
 	$CMD > /dev/null 2>&1 &
 
 	return $!
@@ -444,9 +460,14 @@ run_grub() {
 
 	wait $!
 
+	# Compatibility with old configs.
+	if [ -z $HOSTBRIDGE ] ; then
+		HOSTBRIDGE=hostbridge
+	fi
+
 	dbg "Calling bhyve"
 
-	/usr/sbin/bhyve -A -H -P -u -s 0,hostbridge -s 1,lpc \
+	/usr/sbin/bhyve -A -H -P -u -s 0,$HOSTBRIDGE -s 1,lpc \
 		-s 2,virtio-net,$TAP $(buildhddlist) $(buildcdromlist) \
 		-s 5,virtio-rnd -l com1,$NMDMA -c $CPUS -m $MEMORY $NAME \
 		> /dev/null 2>&1 &
