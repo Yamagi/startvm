@@ -428,10 +428,14 @@ run_bhyveload() {
 		HOSTBRIDGE=hostbridge
 	fi
 
+	if [ -z $NICTYPE ] ; then
+		NICTYPE=virtio-net
+	fi
+
 	dbg "Calling bhyve"
 
 	/usr/sbin/bhyve -A -H -P -u -s 0,$HOSTBRIDGE -s 1,lpc \
-		-s 2,virtio-net,$TAP $(buildhddlist) $(buildcdromlist) \
+		-s 2,$NICTYPE,$TAP $(buildhddlist) $(buildcdromlist) \
 		-s 5,virtio-rnd -l com1,$NMDMA -c $CPUS -m $MEMORY $NAME \
 		> /dev/null 2>&1 &
 
@@ -448,10 +452,14 @@ run_bootrom() {
 		HOSTBRIDGE=hostbridge
 	fi
 
+	if [ -z $NICTYPE ] ; then
+		NICTYPE=virtio-net
+	fi
+
 	dbg "Calling bhyve"
 
 	/usr/sbin/bhyve -H -P -u -w -s 0,$HOSTBRIDGE $(buildhddlist) \
-		$(buildcdromlist) -s 10,virtio-net,$TAP -s 11,virtio-rnd, \
+		$(buildcdromlist) -s 10,$NICTYPE,$TAP -s 11,virtio-rnd, \
 		-s 31,lpc -l com1,$NMDMA -l bootrom,$BOOTROM -c $CPUS -m $MEMORY \
 		$NAME > /dev/null 2>&1 &
 
@@ -469,6 +477,10 @@ run_bootrom_gop() {
 		HOSTBRIDGE=hostbridge
 	fi
 
+	if [ -z $NICTYPE ] ; then
+		NICTYPE=virtio-net
+	fi
+
 	dbg "Calling bhyve"
 
 	CMD="/usr/sbin/bhyve -H -P -u -w -s 0,$HOSTBRIDGE"
@@ -481,7 +493,7 @@ run_bootrom_gop() {
 		CMD="$CMD "
 	fi
 
-	CMD="$CMD -s 15,virtio-net,$TAP -s 16,virtio-rnd "
+	CMD="$CMD -s 15,$NICTYPE,$TAP -s 16,virtio-rnd "
 
 	if [ $GOP_TABLET = 1 ] ; then
 		CMD="$CMD -s 20,xhci,tablet "
@@ -520,10 +532,14 @@ run_grub() {
 		HOSTBRIDGE=hostbridge
 	fi
 
+	if [ -z $NICTYPE ] ; then
+		NICTYPE=virtio-net
+	fi
+
 	dbg "Calling bhyve"
 
 	/usr/sbin/bhyve -A -H -P -u -s 0,$HOSTBRIDGE -s 1,lpc \
-		-s 2,virtio-net,$TAP $(buildhddlist) $(buildcdromlist) \
+		-s 2,$NICTYPE,$TAP $(buildhddlist) $(buildcdromlist) \
 		-s 5,virtio-rnd -l com1,$NMDMA -c $CPUS -m $MEMORY $NAME \
 		> /dev/null 2>&1 &
 

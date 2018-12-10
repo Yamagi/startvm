@@ -49,19 +49,19 @@ BOOT=hd
 
 # --------
 
-# If not set to 0 this is the sector size of the
-# emulated harddisks. This is needed for Win 7
-# which requries 512 sectors and not the more
-# correct 4096 or even 8192 sectors determined by
-# Bhyve.
-SECTORSIZE=0
-
 # Type of HDD controller.
 #  - 'ahci-hd', one controller per drive
 #  - 'ahci', one controller shared by all drives
 #  - 'virtio-blk'
 #  - 'nvme'
 HDTYPE=ahci
+
+# If not set to 0 this is the sector size of the
+# emulated harddisks. This is needed for Win 7
+# which requries 512 sectors and not the more
+# correct 4096 or even 8192 sectors determined by
+# Bhyve.
+SECTORSIZE=0
 
 # Maximum number if NVMe I/O queues.
 NVME_MAXQ=16
@@ -74,10 +74,17 @@ NVME_IOSLOTS=8
 
 # --------
 
-# Hostbridge type. Supported types are:
+# Hostbridge type.
 #  - 'hostbridge' for a standard Intel hostbride.
 #  - 'amd_hostbridge' for an AMD hostbridge.
 HOSTBRIDGE=hostbridge
+
+# --------
+
+# Network interface type.
+#  - 'virtio-net' for a VirtIO NIC.
+#  - 'e1000' for an Intel E1000 NIC.
+NICTYPE=virtio-net
 
 # --------
 
