@@ -7,8 +7,8 @@ CPUS=4
 MEMORY=4096M
 
 # Harddisk images for this VM. HDDs can be numbered,
-# all HDDs are attached to the same controller. HD0 is
-# always the boot device.
+# all HDDs are attached to the same controller. HD0
+# is always the boot device.
 # (0 for no HDD).
 HD0=/path/to/image
 
@@ -50,16 +50,27 @@ BOOT=hd
 # --------
 
 # If not set to 0 this is the sector size of the
-# emulated harddisk s. This is needed for Win 7
+# emulated harddisks. This is needed for Win 7
 # which requries 512 sectors and not the more
 # correct 4096 or even 8192 sectors determined by
 # Bhyve.
 SECTORSIZE=0
 
 # Type of HDD controller.
-#  - 'ahci-hd' for AHCI emulation.
-#  - 'virtio-blk' for virtio.
-HDTYPE=ahci-hd
+#  - 'ahci-hd', one controller per drive
+#  - 'ahci', one controller shared by all drives
+#  - 'virtio-blk'
+#  - 'nvme'
+HDTYPE=ahci
+
+# Maximum number if NVMe I/O queues.
+NVME_MAXQ=16
+
+# Maximum queue I/O queue size.
+NVME_QSZ=2048
+
+# Maximum number of concurrent I/O requests.
+NVME_IOSLOTS=8
 
 # --------
 

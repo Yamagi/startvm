@@ -110,17 +110,33 @@ buildcdromlist() {
 	echo "$CMD"
 }
 
-# Builds a command list containing all
-# given HDDs connected to one disk
-# controller.
+# Builds a command list containing all given HDDs
+# connected to one type of disk controller.
+#
+# Behavior of this function has grown somewhat
+# overcomplicated. Depending on the device type
+# it generates:
+#
+#  - ahci-hd:
+#      One AHCI controller per HDD.
+#
+#  - virtio-blk:
+#      One VirtIO block storage controller per HDD.
+#
+#  - ahci:
+#      One AHCI controller for all HHDs.
+#
+#  - nvme:
+#      Ome NVMe controller per HDD.
 buildhddlist() {
 	CMD=""
 
+	# Old configs are forced to ahci-hd.
 	if [ -z $HDTYPE ] ; then
 		HDTYPE=ahci-hd
 	fi
 
-	# Compatibility cruft for old configs
+	# Compatibility cruft for old configs.
 	if [ ! -z $HD ] ; then
 		if [ $HD == "0" ] ; then
 			return
@@ -143,37 +159,76 @@ buildhddlist() {
 			fi
 		fi
 	else
-		CNT=0
+		if [ "$HDTYPE" == "ahci-hd" -o "$HDTYPE" == "virtio-blk" ] ; then
+			CNT=0
 
-		for HDD in $(listvariables HD[0-9]\*) ; do
-			# Evil hack to evaluate the contents of $HDD
-			# as variable. For example: $$HDD -> $HD0 ->
-			# /path/to/image
-			eval HDD=\"\$$HDD\"
+			for HDD in $(listvariables HD[0-9]\*) ; do
+				# Evil hack to evaluate the contents of $HDD
+				# as variable. For example: $$HDD -> $HD0 ->
+				# /path/to/image
+				eval HDD=\"\$$HDD\"
 
-			if [ $HDD == "0" ] ; then
-				continue
-			fi
-
-			CMD="$CMD -s 3:$CNT,$HDTYPE,$HDD"
-
-			# Even more cruft
-			if [ -z $SECTORSIZE ] ; then
-				if [ $GOP_SECTORSIZE != 0 ] ; then
-					CMD="$CMD,sectorsize=$GOP_SECTORSIZE "
-				else
-					CMD="$CMD "
+				if [ $HDD == "0" ] ; then
+					continue
 				fi
-			else
-				if [ $SECTORSIZE != 0 ] ; then
-					CMD="$CMD,sectorsize=$SECTORSIZE "
-				else
-					CMD="$CMD "
-				fi
-			fi
 
-			CNT=$(($CNT + 1))
-		done
+				CMD="$CMD -s 3:$CNT,$HDTYPE,$HDD"
+
+				# Even more cruft
+				if [ -z $SECTORSIZE ] ; then
+					if [ $GOP_SECTORSIZE != 0 ] ; then
+						CMD="$CMD,sectorsize=$GOP_SECTORSIZE "
+					else
+						CMD="$CMD "
+					fi
+				else
+					if [ $SECTORSIZE != 0 ] ; then
+						CMD="$CMD,sectorsize=$SECTORSIZE "
+					else
+						CMD="$CMD "
+					fi
+				fi
+
+				CNT=$(($CNT + 1))
+			done
+		elif [ "$HDTYPE" == "ahci" ] ; then
+			CMD="$CMD -s 3:0,$HDTYPE"
+
+			for HDD in $(listvariables HD[0-9]\*) ; do
+				# Evil hack to evaluate the contents of $HDD
+				# as variable. For example: $$HDD -> $HD0 ->
+				# /path/to/image
+				eval HDD=\"\$$HDD\"
+
+				if [ $HDD == "0" ] ; then
+					continue
+				fi
+
+				CMD="$CMD,hd:$HDD"
+				CNT=$(($CNT + 1))
+			done
+		elif [ "$HDTYPE" == "nvme" ] ; then
+			CNT=0
+
+			for HDD in $(listvariables HD[0-9]\*) ; do
+				# Evil hack to evaluate the contents of $HDD
+				# as variable. For example: $$HDD -> $HD0 ->
+				# /path/to/image
+				eval HDD=\"\$$HDD\"
+
+				if [ $HDD == "0" ] ; then
+					continue
+				fi
+
+				CMD="$CMD -s 3:$CNT,$HDTYPE,$HDD,maxq=$NVME_MAXQ"
+				CMD="$CMD,qsz=$NVME_QSZ,ioslots=$NVME_IOSLOTS"
+				CMD="$CMD,sectsz=$SECTORSIZE"
+
+				CNT=$(($CNT + 1))
+			done
+		else
+			return
+		fi
 	fi
 
 	echo "$CMD"
