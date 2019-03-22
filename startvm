@@ -72,7 +72,7 @@ usage() {
 # Debug output.
 dbg() {
 	if [ $DEBUG -ne 0 ] ; then
-		echo $@
+		echo $@ >&2
 	fi
 }
 
@@ -81,6 +81,8 @@ dbg() {
 # controller.
 buildcdromlist() {
 	CMD=""
+
+	dbg "Building CDROM list"
 
 	# Compatibility cruft for old configs
 	if [ ! -z $CDROM ] ; then
@@ -130,6 +132,8 @@ buildcdromlist() {
 #      Ome NVMe controller per HDD.
 buildhddlist() {
 	CMD=""
+
+	dbg "Building HDD list"
 
 	# Old configs are forced to ahci-hd.
 	if [ -z $HDTYPE ] ; then
@@ -243,6 +247,8 @@ buildtopology() {
 	if [ ! -z $CPUS ] ; then
 		CORES=$CPUS
 	fi
+
+	dbg "Building CPU topology"
 
 	# Ensure config is valid.
 	if [ -z $SOCKETS ] ; then
@@ -469,12 +475,13 @@ run_bhyveload() {
 		NICTYPE=virtio-net
 	fi
 
-	dbg "Calling bhyve"
+	CMD="/usr/sbin/bhyve -A -H -P -u -s 0,$HOSTBRIDGE -s 1,lpc"
+	CMD="$CMD -s 2,$NICTYPE,$TAP $(buildhddlist) $(buildcdromlist)"
+	CMD="$CMD -s 5,virtio-rnd -l com1,$NMDMA -c $(buildtopology)"
+	CMD="$CMD -m $MEMORY $NAME"
 
-	/usr/sbin/bhyve -A -H -P -u -s 0,$HOSTBRIDGE -s 1,lpc \
-		-s 2,$NICTYPE,$TAP $(buildhddlist) $(buildcdromlist) \
-		-s 5,virtio-rnd -l com1,$NMDMA -c $(buildtopology) \
-		-m $MEMORY $NAME >/dev/null 2>&1 &
+	dbg "Calling bhyve: $CMD"
+	$CMD >/dev/null 2>&1 &
 
 	return $!
 }
@@ -493,12 +500,13 @@ run_bootrom() {
 		NICTYPE=virtio-net
 	fi
 
-	dbg "Calling bhyve"
+	CMD="/usr/sbin/bhyve -H -P -u -w -s 0,$HOSTBRIDGE $(buildhddlist)"
+	CMD="$CMD $(buildcdromlist) -s 10,$NICTYPE,$TAP -s 11,virtio-rnd"
+	CMD="$CMD -s 31,lpc -l com1,$NMDMA -l bootrom,$BOOTROM"
+	CMD="$CMD -c $(buildtopology) -m $MEMORY $NAME"
 
-	/usr/sbin/bhyve -H -P -u -w -s 0,$HOSTBRIDGE $(buildhddlist) \
-		$(buildcdromlist) -s 10,$NICTYPE,$TAP -s 11,virtio-rnd, \
-		-s 31,lpc -l com1,$NMDMA -l bootrom,$BOOTROM -c $ \
-		-m $MEMORY $NAME >/dev/null 2>&1 &
+	dbg "Calling bhyve: $CMD"
+	$CMD >/dev/null 2>&1 &
 
 	return $!
 }
@@ -517,8 +525,6 @@ run_bootrom_gop() {
 	if [ -z $NICTYPE ] ; then
 		NICTYPE=virtio-net
 	fi
-
-	dbg "Calling bhyve"
 
 	CMD="/usr/sbin/bhyve -H -P -u -w -s 0,$HOSTBRIDGE"
 	CMD="$CMD $(buildhddlist) $(buildcdromlist) "
@@ -539,7 +545,7 @@ run_bootrom_gop() {
 	CMD="$CMD -s 31,lpc -l com1,$NMDMA -l bootrom,$BOOTROM "
 	CMD="$CMD -c $(buildtopology) -m $MEMORY $NAME"
 
-	echo "$CMD"
+	dbg "Calling bhyve: $CMD"
 	$CMD >/dev/null 2>&1 &
 
 	return $!
@@ -573,12 +579,13 @@ run_grub() {
 		NICTYPE=virtio-net
 	fi
 
-	dbg "Calling bhyve"
+	CMD="/usr/sbin/bhyve -A -H -P -u -s 0,$HOSTBRIDGE -s 1,lpc"
+	CMD="$CMD -s 2,$NICTYPE,$TAP $(buildhddlist) $(buildcdromlist)"
+	CMD="$CMD -s 5,virtio-rnd -l com1,$NMDMA -c $(buildtopology)"
+	CMD="$CMD -m $MEMORY $NAME"
 
-	/usr/sbin/bhyve -A -H -P -u -s 0,$HOSTBRIDGE -s 1,lpc \
-		-s 2,$NICTYPE,$TAP $(buildhddlist) $(buildcdromlist) \
-		-s 5,virtio-rnd -l com1,$NMDMA -c $(buildtopology) \
-		-m $MEMORY $NAME >/dev/null 2>&1 &
+	dbg "Calling bhyve: $CMD"
+	$CMD >/dev/null 2>&1 &
 
 	return $!
 }
