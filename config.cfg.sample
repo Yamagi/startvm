@@ -1,6 +1,9 @@
-# Number of CPUs available to the VM.
-# (Better not more than the host has.)
-CPUS=4
+# CPU topology. The total number of CPUs available
+# to the guest is calculated as sockets * cores *
+# threads. It must not be higher than 16.
+SOCKETS=1
+CORES=1
+THREADS=1
 
 # Memory available to the VM
 # (For Grub in megabytes!)

@@ -35,8 +35,8 @@
 #  - vmm.ko
 #
 # All instances of this script must share the same configuration dir,
-# otherwise strange things will happen. To boot other guests beside
-# FreeBSD the sysutils/grub2-bhyve must be installed.
+# otherwise strange things will happen. To boot guests with the grub
+# boot option the grub2-bhyve port must be installed.
 #
 # If a vncviewer is installed, the script can launch it with the 'vnc'
 # command on supported VMs. net/tigervnc is reccommended. Otherwise
@@ -232,6 +232,43 @@ buildhddlist() {
 	fi
 
 	echo "$CMD"
+}
+
+# Builds a command list representing the
+# CPU topology. The topology is consistent:
+# numcpus = sockets * cores * threads.
+buildtopology() {
+	# Old configs are forced to one
+	# socket with $CPU cores.
+	if [ ! -z $CPUS ] ; then
+		CORES=$CPUS
+	fi
+
+	# Ensure config is valid.
+	if [ -z $SOCKETS ] ; then
+		SOCKETS=1
+	elif [ $SOCKETS -lt 1 ] ; then
+		SOCKETS=1
+	fi
+
+	if [ -z $CORES ] ; then
+		CORES=1
+	elif [ $CORES -lt 1 ] ; then
+		CORES=1
+	fi
+
+	if [ -z $THREADS ] ; then
+		THREADS=1
+	elif [ $THREADS -lt 1 ] ; then
+		THREADS=1
+	fi
+
+	CPUS=$(($SOCKETS*$CORES*$THREADS))
+
+	# Build command list
+	CMD="cpus=$CPUS,sockets=$SOCKETS,cores=$CORES,threads=$THREADS"
+
+	echo $CMD
 }
 
 # Checks if $BRIDGE exists and creates
@@ -436,8 +473,8 @@ run_bhyveload() {
 
 	/usr/sbin/bhyve -A -H -P -u -s 0,$HOSTBRIDGE -s 1,lpc \
 		-s 2,$NICTYPE,$TAP $(buildhddlist) $(buildcdromlist) \
-		-s 5,virtio-rnd -l com1,$NMDMA -c $CPUS -m $MEMORY $NAME \
-		> /dev/null 2>&1 &
+		-s 5,virtio-rnd -l com1,$NMDMA -c $(buildtopology) \
+		-m $MEMORY $NAME >/dev/null 2>&1 &
 
 	return $!
 }
@@ -460,8 +497,8 @@ run_bootrom() {
 
 	/usr/sbin/bhyve -H -P -u -w -s 0,$HOSTBRIDGE $(buildhddlist) \
 		$(buildcdromlist) -s 10,$NICTYPE,$TAP -s 11,virtio-rnd, \
-		-s 31,lpc -l com1,$NMDMA -l bootrom,$BOOTROM -c $CPUS -m $MEMORY \
-		$NAME > /dev/null 2>&1 &
+		-s 31,lpc -l com1,$NMDMA -l bootrom,$BOOTROM -c $ \
+		-m $MEMORY $NAME >/dev/null 2>&1 &
 
 	return $!
 }
@@ -500,10 +537,10 @@ run_bootrom_gop() {
 	fi
 
 	CMD="$CMD -s 31,lpc -l com1,$NMDMA -l bootrom,$BOOTROM "
-	CMD="$CMD -c $CPUS -m $MEMORY $NAME"
+	CMD="$CMD -c $(buildtopology) -m $MEMORY $NAME"
 
 	echo "$CMD"
-	$CMD > /dev/null 2>&1 &
+	$CMD >/dev/null 2>&1 &
 
 	return $!
 }
@@ -540,8 +577,8 @@ run_grub() {
 
 	/usr/sbin/bhyve -A -H -P -u -s 0,$HOSTBRIDGE -s 1,lpc \
 		-s 2,$NICTYPE,$TAP $(buildhddlist) $(buildcdromlist) \
-		-s 5,virtio-rnd -l com1,$NMDMA -c $CPUS -m $MEMORY $NAME \
-		> /dev/null 2>&1 &
+		-s 5,virtio-rnd -l com1,$NMDMA -c $(buildtopology) \
+		-m $MEMORY $NAME >/dev/null 2>&1 &
 
 	return $!
 }
