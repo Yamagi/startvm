@@ -1,7 +1,6 @@
 #!/bin/sh
 
-# Copyright (c) 2014 - 2017 Yamagi Burmeister
-# All rights reserved.
+# Copyright (c) 2014 - 2019 Yamagi Burmeister
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -39,8 +38,8 @@
 # boot option the grub2-bhyve port must be installed.
 #
 # If a vncviewer is installed, the script can launch it with the 'vnc'
-# command on supported VMs. net/tigervnc is reccommended. Otherwise
-# the VNC port is printed.
+# command on supported VMs. net/tigervnc is recommended. Otherwise the
+# VNC port is printed.
 
 # -------------------------------------------------------------------- #
 
@@ -931,4 +930,3 @@ else
 			;;
 	esac
 fi
-
