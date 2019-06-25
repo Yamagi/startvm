@@ -527,7 +527,7 @@ run_bootrom() {
 		NICTYPE=virtio-net
 	fi
 
-	CMD="/usr/sbin/bhyve -H -u -w -s 0,$HOSTBRIDGE $(buildhddlist)"
+	CMD="/usr/sbin/bhyve -A -H -u -w -s 0,$HOSTBRIDGE $(buildhddlist)"
 	CMD="$CMD $(buildcdromlist) -s 10,$NICTYPE,$TAP -s 11,virtio-rnd"
 	CMD="$CMD -s 31,lpc -l com1,$NMDMA -l bootrom,$BOOTROM"
 
@@ -566,7 +566,7 @@ run_bootrom_gop() {
 		NICTYPE=virtio-net
 	fi
 
-	CMD="/usr/sbin/bhyve -H -u -w -s 0,$HOSTBRIDGE"
+	CMD="/usr/sbin/bhyve -A -H -u -w -s 0,$HOSTBRIDGE"
 	CMD="$CMD $(buildhddlist) $(buildcdromlist) "
 	CMD="$CMD -s 11,fbuf,tcp=0.0.0.0:$VNC,w=$GOP_WIDTH,h=$GOP_HEIGHT"
 
