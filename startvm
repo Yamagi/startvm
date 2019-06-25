@@ -489,9 +489,16 @@ run_bhyveload() {
 		NICTYPE=virtio-net
 	fi
 
-	CMD="/usr/sbin/bhyve -A -H -P -u -s 0,$HOSTBRIDGE -s 1,lpc"
+	CMD="/usr/sbin/bhyve -A -H -u -s 0,$HOSTBRIDGE -s 1,lpc"
 	CMD="$CMD -s 2,$NICTYPE,$TAP $(buildhddlist) $(buildcdromlist)"
 	CMD="$CMD -s 5,virtio-rnd -l com1,$NMDMA $(buildtopology)"
+
+	if [ ! -z $YIELD_CPUS ] ; then
+		if [ $YIELD_CPUS -ne 0 ] ; then
+			CMD="$CMD -P"
+		fi
+	fi
+
 	CMD="$CMD -m $MEMORY $NAME"
 
 	dbg "Calling bhyve: $CMD"
@@ -514,9 +521,16 @@ run_bootrom() {
 		NICTYPE=virtio-net
 	fi
 
-	CMD="/usr/sbin/bhyve -H -P -u -w -s 0,$HOSTBRIDGE $(buildhddlist)"
+	CMD="/usr/sbin/bhyve -H -u -w -s 0,$HOSTBRIDGE $(buildhddlist)"
 	CMD="$CMD $(buildcdromlist) -s 10,$NICTYPE,$TAP -s 11,virtio-rnd"
 	CMD="$CMD -s 31,lpc -l com1,$NMDMA -l bootrom,$BOOTROM"
+
+	if [ ! -z $YIELD_CPUS ] ; then
+		if [ $YIELD_CPUS -ne 0 ] ; then
+			CMD="$CMD -P"
+		fi
+	fi
+
 	CMD="$CMD $(buildtopology) -m $MEMORY $NAME"
 
 	dbg "Calling bhyve: $CMD"
@@ -540,7 +554,7 @@ run_bootrom_gop() {
 		NICTYPE=virtio-net
 	fi
 
-	CMD="/usr/sbin/bhyve -H -P -u -w -s 0,$HOSTBRIDGE"
+	CMD="/usr/sbin/bhyve -H -u -w -s 0,$HOSTBRIDGE"
 	CMD="$CMD $(buildhddlist) $(buildcdromlist) "
 	CMD="$CMD -s 11,fbuf,tcp=0.0.0.0:$VNC,w=$GOP_WIDTH,h=$GOP_HEIGHT"
 
@@ -557,6 +571,13 @@ run_bootrom_gop() {
 	fi
 
 	CMD="$CMD -s 31,lpc -l com1,$NMDMA -l bootrom,$BOOTROM "
+
+	if [ ! -z $YIELD_CPUS ] ; then
+		if [ $YIELD_CPUS -ne 0 ] ; then
+			CMD="$CMD -P"
+		fi
+	fi
+
 	CMD="$CMD $(buildtopology) -m $MEMORY $NAME"
 
 	dbg "Calling bhyve: $CMD"
@@ -593,9 +614,16 @@ run_grub() {
 		NICTYPE=virtio-net
 	fi
 
-	CMD="/usr/sbin/bhyve -A -H -P -u -s 0,$HOSTBRIDGE -s 1,lpc"
+	CMD="/usr/sbin/bhyve -A -H -u -s 0,$HOSTBRIDGE -s 1,lpc"
 	CMD="$CMD -s 2,$NICTYPE,$TAP $(buildhddlist) $(buildcdromlist)"
 	CMD="$CMD -s 5,virtio-rnd -l com1,$NMDMA $(buildtopology)"
+
+	if [ ! -z $YIELD_CPUS ] ; then
+		if [ $YIELD_CPUS -ne 0 ] ; then
+			CMD="$CMD -P"
+		fi
+	fi
+
 	CMD="$CMD -m $MEMORY $NAME"
 
 	dbg "Calling bhyve: $CMD"
