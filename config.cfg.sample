@@ -97,6 +97,18 @@ NICTYPE=virtio-net
 # Only possible if virtual CPUs < physical CPUs.
 PIN_CPUS=0
 
+# Wires the guest memory. Prevents the guest from
+# being swaped put, but may increase memory pressure
+# on the host. Use with care!
+WIRE_MEM=0
+
+# Yield the virtual CPUs (pass control back to the
+# host) as soon as a PAUSE instruction was send by
+# the host. Disabling this might give a little bit
+# more guest performance at the cost of much higher
+# host CPU load.
+YIELD_CPUS=1
+
 # --------
 
 # Resolution for the virtual GOP display, exported

@@ -493,6 +493,12 @@ run_bhyveload() {
 	CMD="$CMD -s 2,$NICTYPE,$TAP $(buildhddlist) $(buildcdromlist)"
 	CMD="$CMD -s 5,virtio-rnd -l com1,$NMDMA $(buildtopology)"
 
+	if [ ! -z $WIRE_MEM ] ; then
+		if [ $WIRE_MEM -ne 0 ] ; then
+			CMD="$CMD -S"
+		fi
+	fi
+
 	if [ ! -z $YIELD_CPUS ] ; then
 		if [ $YIELD_CPUS -ne 0 ] ; then
 			CMD="$CMD -P"
@@ -524,6 +530,12 @@ run_bootrom() {
 	CMD="/usr/sbin/bhyve -H -u -w -s 0,$HOSTBRIDGE $(buildhddlist)"
 	CMD="$CMD $(buildcdromlist) -s 10,$NICTYPE,$TAP -s 11,virtio-rnd"
 	CMD="$CMD -s 31,lpc -l com1,$NMDMA -l bootrom,$BOOTROM"
+
+	if [ ! -z $WIRE_MEM ] ; then
+		if [ $WIRE_MEM -ne 0 ] ; then
+			CMD="$CMD -S"
+		fi
+	fi
 
 	if [ ! -z $YIELD_CPUS ] ; then
 		if [ $YIELD_CPUS -ne 0 ] ; then
@@ -572,6 +584,12 @@ run_bootrom_gop() {
 
 	CMD="$CMD -s 31,lpc -l com1,$NMDMA -l bootrom,$BOOTROM "
 
+	if [ ! -z $WIRE_MEM ] ; then
+		if [ $WIRE_MEM -ne 0 ] ; then
+			CMD="$CMD -S"
+		fi
+	fi
+
 	if [ ! -z $YIELD_CPUS ] ; then
 		if [ $YIELD_CPUS -ne 0 ] ; then
 			CMD="$CMD -P"
@@ -617,6 +635,12 @@ run_grub() {
 	CMD="/usr/sbin/bhyve -A -H -u -s 0,$HOSTBRIDGE -s 1,lpc"
 	CMD="$CMD -s 2,$NICTYPE,$TAP $(buildhddlist) $(buildcdromlist)"
 	CMD="$CMD -s 5,virtio-rnd -l com1,$NMDMA $(buildtopology)"
+
+	if [ ! -z $WIRE_MEM ] ; then
+		if [ $WIRE_MEM -ne 0 ] ; then
+			CMD="$CMD -S"
+		fi
+	fi
 
 	if [ ! -z $YIELD_CPUS ] ; then
 		if [ $YIELD_CPUS -ne 0 ] ; then
