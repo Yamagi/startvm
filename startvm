@@ -270,8 +270,23 @@ buildtopology() {
 
 	CPUS=$(($SOCKETS*$CORES*$THREADS))
 
-	# Build command list
-	CMD="cpus=$CPUS,sockets=$SOCKETS,cores=$CORES,threads=$THREADS"
+	# Build topology command list
+	CMD="-c cpus=$CPUS,sockets=$SOCKETS,cores=$CORES,threads=$THREADS"
+
+	# Pin the CPUs if requested and possible
+	if [ ! -z $PIN_CPUS ] ; then
+		if [ $PIN_CPUS -ne 0 ] ; then
+			PCPUS=$(sysctl -n hw.ncpu)
+
+			if [ $CPUS -le $(sysctl -n hw.ncpu) ] ; then
+				for NUM in $(seq 0 $(($CPUS-1))) ; do
+					CMD="$CMD -p $NUM:$NUM"
+				done
+			else
+				dbg "Can't pin CPUs, more VCPU requested than PCPU available"
+			fi
+		fi
+	fi
 
 	echo $CMD
 }
@@ -476,7 +491,7 @@ run_bhyveload() {
 
 	CMD="/usr/sbin/bhyve -A -H -P -u -s 0,$HOSTBRIDGE -s 1,lpc"
 	CMD="$CMD -s 2,$NICTYPE,$TAP $(buildhddlist) $(buildcdromlist)"
-	CMD="$CMD -s 5,virtio-rnd -l com1,$NMDMA -c $(buildtopology)"
+	CMD="$CMD -s 5,virtio-rnd -l com1,$NMDMA $(buildtopology)"
 	CMD="$CMD -m $MEMORY $NAME"
 
 	dbg "Calling bhyve: $CMD"
@@ -502,7 +517,7 @@ run_bootrom() {
 	CMD="/usr/sbin/bhyve -H -P -u -w -s 0,$HOSTBRIDGE $(buildhddlist)"
 	CMD="$CMD $(buildcdromlist) -s 10,$NICTYPE,$TAP -s 11,virtio-rnd"
 	CMD="$CMD -s 31,lpc -l com1,$NMDMA -l bootrom,$BOOTROM"
-	CMD="$CMD -c $(buildtopology) -m $MEMORY $NAME"
+	CMD="$CMD $(buildtopology) -m $MEMORY $NAME"
 
 	dbg "Calling bhyve: $CMD"
 	$CMD >/dev/null 2>&1 &
@@ -542,7 +557,7 @@ run_bootrom_gop() {
 	fi
 
 	CMD="$CMD -s 31,lpc -l com1,$NMDMA -l bootrom,$BOOTROM "
-	CMD="$CMD -c $(buildtopology) -m $MEMORY $NAME"
+	CMD="$CMD $(buildtopology) -m $MEMORY $NAME"
 
 	dbg "Calling bhyve: $CMD"
 	$CMD >/dev/null 2>&1 &
@@ -580,7 +595,7 @@ run_grub() {
 
 	CMD="/usr/sbin/bhyve -A -H -P -u -s 0,$HOSTBRIDGE -s 1,lpc"
 	CMD="$CMD -s 2,$NICTYPE,$TAP $(buildhddlist) $(buildcdromlist)"
-	CMD="$CMD -s 5,virtio-rnd -l com1,$NMDMA -c $(buildtopology)"
+	CMD="$CMD -s 5,virtio-rnd -l com1,$NMDMA $(buildtopology)"
 	CMD="$CMD -m $MEMORY $NAME"
 
 	dbg "Calling bhyve: $CMD"
