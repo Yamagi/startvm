@@ -1,6 +1,12 @@
 # Configuration
 # -------------
 
+# Path to the UEFI bootrom.
+BOOTROM=/usr/local/share/uefi-firmware/BHYVE_UEFI.fd
+
+# Bridge the VMs connect to.
+BRIDGE=bridge0
+
 # Run in background?
 DAEMON=1
 
@@ -10,19 +16,23 @@ DEBUG=0
 # Runtime directory. (Must be the same
 # for all instances, otherwise things
 # will fuck up!)
-RTDIR=/usr/vm/bhyve/work/
+RTDIR=/var/run/startvm
 
 # Directory where the VM configurations
 # are stored. The directory layout is:
 #
 #  vm1/
-#	config.cfg
+#	bhyve.cfg
 #  vm2/
-#   config.cfg
+#   bhyve.cfg
 #
 # Of course the upper level directories
 # name must be unique. If the directory
-# doesn't contain a config.cfg it's not
+# doesn't contain a bhyve.cfg it's not
 # recognized as a VM configuration.
-VMDIR=/usr/vm/bhyve/config
+VMDIR=/data/startvm
 
+# VNC configuration.
+VNCWIDTH=1920
+VNCHEIGHT=1080
+VNCWAIT=0

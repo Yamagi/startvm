@@ -1,34 +1,33 @@
-StartVM
-=======
+# StartVM
 
-StartVM (`startvm`) is a shell script to run and manage Bhyve virtual
-machines. It's just a simple wrapper, indented to easy Bhyve usage.
+StartVM (*startvm*) is a shell script to run and manage Bhyve virtual
+machines. It's a simple wrapper, indented to ease starting and stopping
+Bhyve VMs.
 
 
-Installation
-------------
+## Installation
 
-To install this script just clone the Github repository and symlink
-`startvm` somewhere into your path. Rename `system.cfg.sample` to
-`system.cfg` and edit it to match your needs. The file must be in the
+To install this script, just clone the Github repository and symlink
+*startvm* somewhere into your path. Rename *system.cfg.sample* to
+*system.cfg* and edit it to match your needs. The file must be in the
 same directory as the script itself!
 
 The following kernel modules must be loaded:
-* if_bridge.ko
-* if_tap.ko
-* nmdm.ko
-* vmm.ko
+* `if_bridge.ko`
+* `if_tuntap.ko`
+* `nmdm.ko`
+* `vmm.ko`
 
-If you want to boot Linux VMs sysutils/grub2-bhyve must be installed.
-If a vncviewer is installed, the script will start it with the 'vnc'
-command for supported VMs. net/tigervnc is recommended.
+The following ports are required:
+* `sysutils/uefi-edk2-bhyve` (or any other compatible UEFI bootrom)
+* `net/tigervnc-client` (optional)
 
 
-Usage
------
+## Usage
+
 Create a new directory in your VMDIR. The directory name is used as VM
-name, so do not use any character forbidden by Bhyve. Put the config.cfg
-into it, alter it to your needs. Now you're ready to start your VM:
+name, so do not use any character forbidden by Bhyve. Put bhyve.cfg into
+it. An example config is supplied. Now you're ready to start your VM:
 
     Usage: ./startvm.sh [vmname] cmd
     
@@ -41,4 +40,3 @@ into it, alter it to your needs. Now you're ready to start your VM:
      - run:    Run the VM
      - status: Show status
      - vnc:    Run vncviewer or print the VNC port
-

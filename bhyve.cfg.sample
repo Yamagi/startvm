@@ -1,0 +1,27 @@
+# Example Bhyve config
+# --------------------
+
+# Attention:
+#  * key and value MUST NOT be separated by whitespaces.
+#  * PCI slots 0, 30 and 31 must be available for startvm.
+#  * startvm configures the com1 port, framebuffer and the NIC.
+#  * The VM is always named after its config directory.
+#
+# All options are documented in bhyve_config(5).
+
+# Most guests need ACPI tables.
+acpi_tables=true
+
+# Number of vCPUs.
+cpus=4
+
+# Memory size.
+memory.size=2G
+
+# An NVMe controller.
+pci.0.2.0.device=nvme
+pci.0.2.0.path=/path/to/image.img
+
+# An XHCI controller with tablet.
+pci.0.3.0.device=xhci
+pci.0.3.0.slot.1.device=tablet

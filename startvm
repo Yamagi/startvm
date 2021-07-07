@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (c) 2014 - 2019 Yamagi Burmeister
+# Copyright (c) 2014 - 2019, 2021 Yamagi
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -25,21 +25,19 @@
 
 # -------------------------------------------------------------------- #
 
-# Simple script to run a Bhvye virtual machine. You need to edit this
-# script to match your setup! Before running this script make sure
-# that the following kernel modules are loaded:
+# Simple script to run a Bhvye virtual machine. Before running this
+# script make sure that the following kernel modules are loaded:
 #  - if_bridge.ko
-#  - if_tap.ko
+#  - if_tuntap.ko
 #  - nmdm.ko
 #  - vmm.ko
 #
 # All instances of this script must share the same configuration dir,
-# otherwise strange things will happen. To boot guests with the grub
-# boot option the grub2-bhyve port must be installed.
+# otherwise strange things will happen.
 #
 # If a vncviewer is installed, the script can launch it with the 'vnc'
-# command on supported VMs. net/tigervnc is recommended. Otherwise the
-# VNC port is printed.
+# command on supported VMs. net/tigervnc-viewer is recommended. In all
+# other cases the VNC port is printed.
 
 # -------------------------------------------------------------------- #
 
@@ -74,244 +72,65 @@ dbg() {
 		echo $@ >&2
 	fi
 }
-
-# Builds a command list containing all
-# given CDROMs connected to one disk
-# controller.
-buildcdromlist() {
-	CMD=""
-
-	dbg "Building CDROM list"
-
-	# Compatibility cruft for old configs
-	if [ ! -z $CDROM ] ; then
-		if [ $CDROM == "0" ] ; then
-			return
-		fi
-
-		CMD="$CMD -s 4,ahci-cd,$CDROM "
-	else
-		CNT=0
-
-		for CDROM in $(listvariables CDROM[0-9]\*) ; do
-			# Evil hack to evalute the contents of $CDROM
-			# as variable. For example: $$CDROM -> $CDROM0
-			# -> /path/to/iso
-			eval CDROM=\"\$$CDROM\"
-
-			if [ $CDROM == "0" ] ; then
-				continue
-			fi
-
-			CMD="$CMD -s 4:$CNT,ahci-cd,$CDROM "
-			CNT=$(($CNT + 1))
-		done
-	fi
-
-	echo "$CMD"
+# Error out
+err() {
+	echo $@ >&2
+	exit 1
 }
 
-# Builds a command list containing all given HDDs
-# connected to one type of disk controller.
-#
-# Behavior of this function has grown somewhat
-# overcomplicated. Depending on the device type
-# it generates:
-#
-#  - ahci-hd:
-#      One AHCI controller per HDD.
-#
-#  - virtio-blk:
-#      One VirtIO block storage controller per HDD.
-#
-#  - ahci:
-#      One AHCI controller for all HHDs.
-#
-#  - nvme:
-#      Ome NVMe controller per HDD.
-buildhddlist() {
-	CMD=""
+# -------------------------------------------------------------------- #
 
-	dbg "Building HDD list"
-
-	# Old configs are forced to ahci-hd.
-	if [ -z $HDTYPE ] ; then
-		HDTYPE=ahci-hd
+# Aborts if not running as root.
+asroot() {
+	if [ $(id -u) -ne 0 ] ; then
+		echo "This can only be done as root."
+		exit 1
 	fi
-
-	# Compatibility cruft for old configs.
-	if [ ! -z $HD ] ; then
-		if [ $HD == "0" ] ; then
-			return
-		fi
-
-		CMD="$CMD -s 3,$HDTYPE,$HD"
-
-		# Even more cruft
-		if [ -z $SECTORSIZE ] ; then
-			if [ $GOP_SECTORSIZE != 0 ] ; then
-				CMD="$CMD,sectorsize=$GOP_SECTORSIZE "
-			else
-				CMD="$CMD "
-			fi
-		else
-			if [ $SECTORSIZE != 0 ] ; then
-				CMD="$CMD,sectorsize=$SECTORSIZE "
-			else
-				CMD="$CMD "
-			fi
-		fi
-	else
-		if [ "$HDTYPE" == "ahci-hd" -o "$HDTYPE" == "virtio-blk" ] ; then
-			CNT=0
-
-			for HDD in $(listvariables HD[0-9]\*) ; do
-				# Evil hack to evaluate the contents of $HDD
-				# as variable. For example: $$HDD -> $HD0 ->
-				# /path/to/image
-				eval HDD=\"\$$HDD\"
-
-				if [ $HDD == "0" ] ; then
-					continue
-				fi
-
-				CMD="$CMD -s 3:$CNT,$HDTYPE,$HDD"
-
-				# Even more cruft
-				if [ -z $SECTORSIZE ] ; then
-					if [ $GOP_SECTORSIZE != 0 ] ; then
-						CMD="$CMD,sectorsize=$GOP_SECTORSIZE "
-					else
-						CMD="$CMD "
-					fi
-				else
-					if [ $SECTORSIZE != 0 ] ; then
-						CMD="$CMD,sectorsize=$SECTORSIZE "
-					else
-						CMD="$CMD "
-					fi
-				fi
-
-				CNT=$(($CNT + 1))
-			done
-		elif [ "$HDTYPE" == "ahci" ] ; then
-			CMD="$CMD -s 3:0,$HDTYPE"
-
-			for HDD in $(listvariables HD[0-9]\*) ; do
-				# Evil hack to evaluate the contents of $HDD
-				# as variable. For example: $$HDD -> $HD0 ->
-				# /path/to/image
-				eval HDD=\"\$$HDD\"
-
-				if [ $HDD == "0" ] ; then
-					continue
-				fi
-
-				CMD="$CMD,hd:$HDD"
-				CNT=$(($CNT + 1))
-			done
-		elif [ "$HDTYPE" == "nvme" ] ; then
-			CNT=0
-
-			for HDD in $(listvariables HD[0-9]\*) ; do
-				# Evil hack to evaluate the contents of $HDD
-				# as variable. For example: $$HDD -> $HD0 ->
-				# /path/to/image
-				eval HDD=\"\$$HDD\"
-
-				if [ $HDD == "0" ] ; then
-					continue
-				fi
-
-				CMD="$CMD -s 3:$CNT,$HDTYPE,$HDD,maxq=$NVME_MAXQ"
-				CMD="$CMD,qsz=$NVME_QSZ,ioslots=$NVME_IOSLOTS"
-				CMD="$CMD,sectsz=$SECTORSIZE"
-
-				CNT=$(($CNT + 1))
-			done
-		else
-			return
-		fi
-	fi
-
-	echo "$CMD"
 }
 
-# Builds a command list representing the
-# CPU topology. The topology is consistent:
-# numcpus = sockets * cores * threads.
-buildtopology() {
-	# Old configs are forced to one
-	# socket with $CPU cores.
-	if [ ! -z $CPUS ] ; then
-		CORES=$CPUS
-	fi
-
-	dbg "Building CPU topology"
-
-	# Ensure config is valid.
-	if [ -z $SOCKETS ] ; then
-		SOCKETS=1
-	elif [ $SOCKETS -lt 1 ] ; then
-		SOCKETS=1
-	fi
-
-	if [ -z $CORES ] ; then
-		CORES=1
-	elif [ $CORES -lt 1 ] ; then
-		CORES=1
-	fi
-
-	if [ -z $THREADS ] ; then
-		THREADS=1
-	elif [ $THREADS -lt 1 ] ; then
-		THREADS=1
-	fi
-
-	CPUS=$(($SOCKETS*$CORES*$THREADS))
-
-	# Build topology command list
-	CMD="-c cpus=$CPUS,sockets=$SOCKETS,cores=$CORES,threads=$THREADS"
-
-	# Pin the CPUs if requested and possible
-	if [ ! -z $PIN_CPUS ] ; then
-		if [ $PIN_CPUS -ne 0 ] ; then
-			PCPUS=$(sysctl -n hw.ncpu)
-
-			if [ $CPUS -le $(sysctl -n hw.ncpu) ] ; then
-				for NUM in $(seq 0 $(($CPUS-1))) ; do
-					CMD="$CMD -p $NUM:$NUM"
-				done
-			else
-				dbg "Can't pin CPUs, more VCPU requested than PCPU available"
-			fi
-		fi
-	fi
-
-	echo $CMD
+# Transforms the process into a daemon.
+becomedaemon() {
+	dbg "Respawning as daemon"
+	/usr/sbin/daemon -f $1 daemon $2
 }
 
-# Checks if $BRIDGE exists and creates
-# it if necessary.
-createbridge() {
+# Checks if $BRIDGE exists.
+checkbridge() {
+	dbg "Checking if $BRIDGE exists"
 	/sbin/ifconfig $BRIDGE > /dev/null
 
 	if [ $? -ne 0 ] ; then
-		dbg "Creating $BRIDGE"
-
-		/sbin/ifconfig $BRIDGE create
-		/sbin/ifconfig $BRIDGE addm $EXTNIC stp $EXTNIC up
+		err "Bridge $BRIDGE doesnt exists"
 	fi
 }
 
 # Checks if the "up on open" sysctl for
 # tap devices is set. If necessary it's
 # value is changed to 1.
-checkuponopen() {
-	if [ `/sbin/sysctl -n net.link.tap.up_on_open` -ne 1 ] ; then
-		dbg "Setting net.link.tap.up_on_open to 1"
+checktapuponopen() {
+	dbg "Checking if if_tuntap.ko sysctls are available"
+	/sbin/sysctl net.link.tap.up_on_open > /dev/null 2>&1
 
-		/sbin/sysctl net.link.tap.up_on_open=1 > /dev/null 2>&1
+	if [ $? -ne 0 ] ; then
+		err "if_tuntab.ko sysctls aren't available"
+	fi
+
+	dbg "Setting net.link.tap.up_on_open to 1"
+	/sbin/sysctl net.link.tap.up_on_open=1 > /dev/null 2>&1
+}
+
+# Creates and configures a tap device.
+#  $1 -> ID of the VM
+createtap() {
+	/sbin/ifconfig tap$1 > /dev/null 2>&1
+
+	if [ $? -ne 0 ] ; then
+		dbg "Creating tap$1"
+		/sbin/ifconfig tap$1 create
+		/sbin/ifconfig $BRIDGE addm tap$1 stp tap$1 up
+		return $1
+	else
+		err "tap$1 already existent"
 	fi
 }
 
@@ -346,40 +165,20 @@ generateid() {
 			if [ $MATCH -eq 0 ] ; then
 				echo "UID=\"$UID $COUNT\"" > $RTDIR/id
 				rm $RTDIR/id.lock
-
 				return $COUNT
 			fi
 		done
 
 		# If we're here we're unable to find an ID.
 		dbg "Maximum ID reached, sorry."
-
 		rm $RTDIR/id.lock
 		exit 1
 	else
 		# Save and unlock
 		echo "UID=\"0\"" > $RTDIR/id
 		rm $RTDIR/id.lock
-
 		return 0
 	fi
-}
-
-# Lists all set variables that match a pattern.
-#  $1 -> Pattern
-listvariables() {
-	for VAR in $(set) ; do
-		VAR="${VAR%%=*}"
-
-		case "$VAR" in
-			$1)
-				echo $VAR
-				;;
-			*)
-				continue
-				;;
-		esac
-	done
 }
 
 # Removes the given ID from the list of used IDs.
@@ -417,243 +216,6 @@ removeid() {
 
 	# Unlock
 	rm $RTDIR/id.lock
-}
-
-# Creates and configures a tap device.
-#  $1 -> ID of the VM
-createtap() {
-	/sbin/ifconfig tap$1 > /dev/null 2>&1
-
-	if [ $? -ne 0 ] ; then
-		dbg "Creating tap$1"
-
-		/sbin/ifconfig tap$1 create
-		/sbin/ifconfig $BRIDGE addm tap$1 stp tap$1 up
-		return $1
-	else
-		echo "tap$1 already existent"
-		exit 1
-	fi
-}
-
-# Transforms the process into a daemon.
-becomedaemon() {
-	dbg "Respawning as daemon"
-	/usr/sbin/daemon -f $1 daemon $2
-}
-
-
-# Aborts if not running as root.
-asroot() {
-	if [ $(id -u) -ne 0 ] ; then
-		echo "This can only be done as root."
-		exit 1
-	fi
-}
-
-# -------------------------------------------------------------------- #
-
-# Runs a VM with bhyveload
-run_bhyveload() {
-	TAP=$1
-	NMDMA=$2
-
-	dbg "Calling bhyveload"
-
-	if [ $BOOT = "cdrom" ] ; then
-		dbg "Booting from CDROM"
-
-		# Compatibility cruft for old configs
-		if [ -z $CDROM0 ] ; then
-			/usr/sbin/bhyveload -m $MEMORY -d $CDROM -c $NMDMA $NAME
-		else
-			/usr/sbin/bhyveload -m $MEMORY -d $CDROM0 -c $NMDMA $NAME
-		fi
-	elif [ $BOOT = "hd" ] ; then
-		dbg "Booting from harddisk"
-
-		# Compatibility cruft for old configs
-		if [ -z $HD0 ] ; then
-			/usr/sbin/bhyveload -m $MEMORY -d $HD -c $NMDMA $NAME
-		else
-			/usr/sbin/bhyveload -m $MEMORY -d $HD0 -c $NMDMA $NAME
-		fi
-	fi
-
-	# Compatibility with old configs.
-	if [ -z $HOSTBRIDGE ] ; then
-		HOSTBRIDGE=hostbridge
-	fi
-
-	if [ -z $NICTYPE ] ; then
-		NICTYPE=virtio-net
-	fi
-
-	CMD="/usr/sbin/bhyve -A -H -u -s 0,$HOSTBRIDGE -s 1,lpc"
-	CMD="$CMD -s 2,$NICTYPE,$TAP $(buildhddlist) $(buildcdromlist)"
-	CMD="$CMD -s 5,virtio-rnd -l com1,$NMDMA $(buildtopology)"
-
-	if [ ! -z $WIRE_MEM ] ; then
-		if [ $WIRE_MEM -ne 0 ] ; then
-			CMD="$CMD -S"
-		fi
-	fi
-
-	if [ ! -z $YIELD_CPUS ] ; then
-		if [ $YIELD_CPUS -ne 0 ] ; then
-			CMD="$CMD -P"
-		fi
-	fi
-
-	CMD="$CMD -m $MEMORY $NAME"
-
-	dbg "Calling bhyve: $CMD"
-	$CMD >/dev/null 2>&1 &
-
-	return $!
-}
-
-# Run VM with bootrom
-run_bootrom() {
-	TAP=$1
-	NMDMA=$2
-
-	# Compatibility with old configs.
-	if [ -z $HOSTBRIDGE ] ; then
-		HOSTBRIDGE=hostbridge
-	fi
-
-	if [ -z $NICTYPE ] ; then
-		NICTYPE=virtio-net
-	fi
-
-	CMD="/usr/sbin/bhyve -A -H -u -w -s 0,$HOSTBRIDGE $(buildhddlist)"
-	CMD="$CMD $(buildcdromlist) -s 10,$NICTYPE,$TAP -s 11,virtio-rnd"
-	CMD="$CMD -s 31,lpc -l com1,$NMDMA -l bootrom,$BOOTROM"
-
-	if [ ! -z $WIRE_MEM ] ; then
-		if [ $WIRE_MEM -ne 0 ] ; then
-			CMD="$CMD -S"
-		fi
-	fi
-
-	if [ ! -z $YIELD_CPUS ] ; then
-		if [ $YIELD_CPUS -ne 0 ] ; then
-			CMD="$CMD -P"
-		fi
-	fi
-
-	CMD="$CMD $(buildtopology) -m $MEMORY $NAME"
-
-	dbg "Calling bhyve: $CMD"
-	$CMD >/dev/null 2>&1 &
-
-	return $!
-}
-
-# RUN VM with GOP instruction bootrom
-run_bootrom_gop() {
-	TAP=$1
-	NMDMA=$2
-	VNC=$3
-
-	# Compatibility with old configs.
-	if [ -z $HOSTBRIDGE ] ; then
-		HOSTBRIDGE=hostbridge
-	fi
-
-	if [ -z $NICTYPE ] ; then
-		NICTYPE=virtio-net
-	fi
-
-	CMD="/usr/sbin/bhyve -A -H -u -w -s 0,$HOSTBRIDGE"
-	CMD="$CMD $(buildhddlist) $(buildcdromlist) "
-	CMD="$CMD -s 11,fbuf,tcp=0.0.0.0:$VNC,w=$GOP_WIDTH,h=$GOP_HEIGHT"
-
-	if [ $GOP_WAIT = 1 ] ; then
-		CMD="$CMD,wait "
-	else
-		CMD="$CMD "
-	fi
-
-	CMD="$CMD -s 15,$NICTYPE,$TAP -s 16,virtio-rnd "
-
-	if [ $GOP_TABLET = 1 ] ; then
-		CMD="$CMD -s 20,xhci,tablet "
-	fi
-
-	CMD="$CMD -s 31,lpc -l com1,$NMDMA -l bootrom,$BOOTROM "
-
-	if [ ! -z $WIRE_MEM ] ; then
-		if [ $WIRE_MEM -ne 0 ] ; then
-			CMD="$CMD -S"
-		fi
-	fi
-
-	if [ ! -z $YIELD_CPUS ] ; then
-		if [ $YIELD_CPUS -ne 0 ] ; then
-			CMD="$CMD -P"
-		fi
-	fi
-
-	CMD="$CMD $(buildtopology) -m $MEMORY $NAME"
-
-	dbg "Calling bhyve: $CMD"
-	$CMD >/dev/null 2>&1 &
-
-	return $!
-}
-
-# Run VM with grub-bhyve
-run_grub() {
-	TAP=$1
-	NMDMA=$2
-	NMDMB=$3
-
-	dbg "Calling grub-bhyve"
-
-	# We need to write one bit into the virtual nullmodem
-	# cable, otherwise grub-bhyve will wait forever for
-	# user input. Wait 0.5 seconds for nmdm to open. This
-	# is a dirty work around against possible races.
-	true > $NMDMB &
-	sleep 0.5
-
-	/usr/local/sbin/grub-bhyve -r $BOOT -m $MAP -M $MEMORY -c $NMDMA $NAME &
-
-	wait $!
-
-	# Compatibility with old configs.
-	if [ -z $HOSTBRIDGE ] ; then
-		HOSTBRIDGE=hostbridge
-	fi
-
-	if [ -z $NICTYPE ] ; then
-		NICTYPE=virtio-net
-	fi
-
-	CMD="/usr/sbin/bhyve -A -H -u -s 0,$HOSTBRIDGE -s 1,lpc"
-	CMD="$CMD -s 2,$NICTYPE,$TAP $(buildhddlist) $(buildcdromlist)"
-	CMD="$CMD -s 5,virtio-rnd -l com1,$NMDMA $(buildtopology)"
-
-	if [ ! -z $WIRE_MEM ] ; then
-		if [ $WIRE_MEM -ne 0 ] ; then
-			CMD="$CMD -S"
-		fi
-	fi
-
-	if [ ! -z $YIELD_CPUS ] ; then
-		if [ $YIELD_CPUS -ne 0 ] ; then
-			CMD="$CMD -P"
-		fi
-	fi
-
-	CMD="$CMD -m $MEMORY $NAME"
-
-	dbg "Calling bhyve: $CMD"
-	$CMD >/dev/null 2>&1 &
-
-	return $!
 }
 
 # -------------------------------------------------------------------- #
@@ -726,7 +288,7 @@ listvms() {
 	overall_len=0
 
 	for vm in $(ls $VMDIR) ; do
-		if [ ! -f "$VMDIR/$vm/config.cfg" ] ; then
+		if [ ! -f "$VMDIR/$vm/bhyve.cfg" ] ; then
 			continue
 		fi
 
@@ -741,7 +303,7 @@ listvms() {
 		iteration=0
 		padding=""
 
-		if [ ! -f "$VMDIR/$vm/config.cfg" ] ; then
+		if [ ! -f "$VMDIR/$vm/bhyve.cfg" ] ; then
 			continue
 		fi
 
@@ -773,7 +335,7 @@ plainlistvms() {
 	dbg "Printing VMs in $VMDIR"
 
 	for vm in $(ls $VMDIR) ; do
-		if [ ! -f "$VMDIR/$vm/config.cfg" ] ; then
+		if [ ! -f "$VMDIR/$vm/bhyve.cfg" ] ; then
 			continue
 		fi
 
@@ -798,11 +360,11 @@ runvm() {
 	generateid
 	ID=$?
 
-	# Create the bridge
-	createbridge
+	# Check if the bridge exists
+	checkbridge
 
 	# Create tap device
-	checkuponopen
+	checktapuponopen
 	createtap $ID
 	TAP=tap$?
 
@@ -823,23 +385,25 @@ runvm() {
 		echo "ID=$ID" >> $RTDIR/$NAME.state
 		echo "VNC=$VNC" >> $RTDIR/$NAME.state
 
-		# Load and run the VM
-		if [ $LOADER = "bhyve" ] ; then
-			run_bhyveload $TAP $NMDMA
-			PID=$?
-		elif [ $LOADER = "bootrom" ] ; then
-			run_bootrom $TAP $NMDMA
-			PID=$?
-		elif [ $LOADER = "bootrom_gop" ] ; then
-			run_bootrom_gop $TAP $NMDMA $VNC
-			PID=$?
-		elif [ $LOADER = "grub" ] ; then
-			run_grub $TAP $NMDMA $NMDMB
-			PID=$?
-		else
-			echo "Unknown LOADER method: $LOADER"
-			break;
+		# Configure the VM.
+		CMD="bhyve -k $BHYVECFG"
+		CMD="$CMD -s 0,hostbridge"
+		CMD="$CMD -s 29,virtio-net,$TAP"
+		CMD="$CMD -s 30,fbuf,tcp=0.0.0.0:$VNC,w=$VNCWIDTH,h=$VNCHEIGHT"
+
+		if [ $VNCWAIT = 1 ] ; then
+			CMD="$CMD,wait"
 		fi
+
+		CMD="$CMD -s 31,lpc"
+		CMD="$CMD -l com1,$NMDMB"
+		CMD="$CMD -l bootrom,$BOOTROM"
+		CMD="$CMD $NAME"
+
+		# Load and run the VM
+		dbg "Calling bhyve: $CMD"
+		$CMD >/dev/null 2>&1 &
+		PID=$!
 
 		# Save PID
 		dbg "Saving PID to $RTDIR/$NAME.state"
@@ -859,18 +423,19 @@ runvm() {
 			break
 		fi
 
-        # Grub is not reboot save. We need to
-		# recreate the VM, otherwise Bhyve
-		# will crash.
-		if [ $LOADER = "grub" ] ; then
-			/usr/sbin/bhyvectl --destroy --vm=$NAME
+		# We'll recreate the VM at reboot
+		if [ -e /dev/vmm/$NAME ] ; then
+			/usr/sbin/bhyvectl --destroy --vm=$NAME > /dev/null 2>&1
 		fi
 
 		dbg "Reboot"
 	done
 
 	# Cleanup
-	/usr/sbin/bhyvectl --destroy --vm=$NAME > /dev/null 2>&1
+	if [ -e /dev/vmm/$NAME ] ; then
+		/usr/sbin/bhyvectl --destroy --vm=$NAME > /dev/null 2>&1
+	fi
+
 	/sbin/ifconfig $BRIDGE deletem $TAP up
 	/sbin/ifconfig $TAP destroy
 	rm $RTDIR/$NAME.state
@@ -921,8 +486,7 @@ vnc() {
 
 # Check if configuration dir exists
 if [ ! -d $VMDIR ] ; then
-	echo "$VMDIR doesn't exists or is not a directory"
-	exit 1
+	err "$VMDIR doesn't exists or is not a directory"
 fi
 
 # Single parameter commands
@@ -949,16 +513,21 @@ if [ $# -ne 2 ] ; then
 	usage
 fi
 
-# Source VM config
+# Check if it's a valid VM
 NAME=$2
-VMCFG="$VMDIR/$NAME/config.cfg"
+BHYVECFG="$VMDIR/$NAME/bhyve.cfg"
 
-if [ ! -f "$VMCFG" ] ; then
-	echo "$NAME is not a valid VM"
-	exit 1
+if [ ! -f "$BHYVECFG" ] ; then
+	err "$NAME is not a valid VM"
 fi
 
-. $VMCFG
+# A local config to override some global settings
+NAME=$2
+LOCALCFG="$VMDIR/$NAME/startvm.cfg"
+
+if [ -f "$LOCALCFG" ] ; then
+	. $LOCALCFG
+fi
 
 if [ $1 = "daemon" ] ; then
 	runvm
