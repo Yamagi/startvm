@@ -3,6 +3,7 @@
 
 # Attention:
 #  * key and value MUST NOT be separated by whitespaces.
+#  * There must be no whitespaces at the end of lines.
 #  * PCI slots 0, 30 and 31 must be available for startvm.
 #  * startvm configures the com1 port, framebuffer and the NIC.
 #  * The VM is always named after its config directory.
@@ -18,10 +19,22 @@ cpus=4
 # Memory size.
 memory.size=2G
 
+# UTC for the realtime clock
+rtc.use_localtime=false
+
+# Don't burn CPU time
+x86.vmexit_on_hlt=true
+x86.vmexit_on_true=true
+
 # An NVMe controller.
 pci.0.2.0.device=nvme
 pci.0.2.0.path=/path/to/image.img
 
+# An AHCI CDROM for the install image.
+pci.0.3.0.device=ahci
+pci.0.3.0.port.0.path=/path/to/install.iso
+pci.0.3.0.port.0.type=cd
+
 # An XHCI controller with tablet.
-pci.0.3.0.device=xhci
-pci.0.3.0.slot.1.device=tablet
+pci.0.4.0.device=xhci
+pci.0.4.0.slot.1.device=tablet
