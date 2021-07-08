@@ -419,14 +419,13 @@ runvm() {
 		wait $PID
 		RET=$?
 
-		# Destroy the VM
+		# Destroy the VM and wait a second to
+		# give the system a little time to
+		# clean thinks up.
 		if [ -e /dev/vmm/$NAME ] ; then
 			/usr/sbin/bhyvectl --destroy --vm=$NAME > /dev/null 2>&1
 		fi
 
-		# Wait a second to give the system
-		# a little bit time to clean things
-		# up.
 		sleep 1
 
 		# Bhyve return codes:
