@@ -402,7 +402,13 @@ runvm() {
 
 		# Load and run the VM
 		dbg "Calling bhyve: $CMD"
-		$CMD >/dev/null 2>&1 &
+
+		if [ $DEBUG -eq 0 ] ; then
+			$CMD >/dev/null 2>&1 &
+		else
+			$CMD &
+		fi
+
 		PID=$!
 
 		# Save PID
@@ -411,31 +417,33 @@ runvm() {
 
 		# Wait for bhyve
 		wait $PID
+		RET=$?
 
-		# Return codes:
+		# Destroy the VM
+		if [ -e /dev/vmm/$NAME ] ; then
+			/usr/sbin/bhyvectl --destroy --vm=$NAME > /dev/null 2>&1
+		fi
+
+		# Wait a second to give the system
+		# a little bit time to clean things
+		# up.
+		sleep 1
+
+		# Bhyve return codes:
 		# - 0: reset
 		# - 1: powered off
 		# - 2: halted
 		# - 3: triple fault
 		# - other: crash
-		if [ $? -ne 0 ] ; then
+		if [ $RET -ne 0 ] ; then
 			dbg "Shutdown"
 			break
-		fi
-
-		# We'll recreate the VM at reboot
-		if [ -e /dev/vmm/$NAME ] ; then
-			/usr/sbin/bhyvectl --destroy --vm=$NAME > /dev/null 2>&1
 		fi
 
 		dbg "Reboot"
 	done
 
 	# Cleanup
-	if [ -e /dev/vmm/$NAME ] ; then
-		/usr/sbin/bhyvectl --destroy --vm=$NAME > /dev/null 2>&1
-	fi
-
 	/sbin/ifconfig $BRIDGE deletem $TAP up
 	/sbin/ifconfig $TAP destroy
 	rm $RTDIR/$NAME.state
