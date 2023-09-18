@@ -1,6 +1,11 @@
 # Configuration
 # -------------
 
+# The global configuration file. Must be placed next to
+# the `startvm` script. All option can be overridden on
+# a per VM basis by putting a file startvm.cfg into the
+# VMs configuration dir.
+
 # Path to the UEFI bootrom.
 BOOTROM=/usr/local/share/uefi-firmware/BHYVE_UEFI.fd
 
@@ -32,8 +37,10 @@ RTDIR=/var/run/startvm
 #
 #  vm1/
 #	bhyve.cfg
+#	startvm.cfg (optional)
 #  vm2/
-#   bhyve.cfg
+#	bhyve.cfg
+#	startvm.cfg (optional)
 #
 # Of course the upper level directories
 # name must be unique. If the directory
