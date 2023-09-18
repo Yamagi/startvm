@@ -123,16 +123,57 @@ checktapuponopen() {
 
 # Create and configure the given tap device.
 #  $1 -> ID of the VM.
+#  $2 -> Bridge to connect to.
 createtap() {
-	/sbin/ifconfig tap$1 > /dev/null 2>&1
-
+	# The naming scheme for tap devices is tap$ID_BRIDGE. It
+	# would be nice to have the VM name in it, but the maximum
+	# length is 15 characters. For the same reason and better
+	# readability we don't want the full name of the bridge,
+	# only the service name. We support two name schemes for
+	# bridges and need to extract the service name accordingly:
+	#  * bridge_servicename -> Extract service name.
+	#  * bridge-servicename -> Extract servicename.
+	# Everything else is used like it is.
+	TAPBRIDGE=""
+	echo $2 | grep -q -e '_' -e '-' >/dev/null 2>&1
 	if [ $? -ne 0 ] ; then
-		dbg "Creating tap$1"
-		/sbin/ifconfig tap$1 create
-		/sbin/ifconfig $BRIDGE addm tap$1 stp tap$1 up
-		return $1
+		# Unknown or standard scheme.
+		TAPBRIDGE=$2
 	else
-		err "tap$1 already existent"
+		echo $2 | grep -q -e '_' >/dev/null 2>&1
+		if [ $? -eq 0 ] ; then
+			# bridge_servicename scheme.
+			TAPBRIDGE=$(echo $2 | cut -d '_' -f 2-)
+		else
+			echo $2 | grep -q -e '-' >/dev/null 2>&1
+			if [ $? -eq 0 ] ; then
+				# bridge-servicename scheme.
+				TAPBRIDGE=$(echo $2 | cut -d '-' -f 2-)
+			fi
+		fi
+	fi
+
+	TAPNAME=tap$1_$TAPBRIDGE
+	dbg "tap device name is $TAPNAME"
+
+	/sbin/ifconfig $TAPNAME > /dev/null 2>&1
+	if [ $? -ne 0 ] ; then
+		dbg "Creating $TAPNAME"
+
+		# Create, name and annotate the tap device.
+		/sbin/ifconfig tap create name $TAPNAME \
+			descr "VM $NAME -> $2" >/dev/null 2>&1
+		if [ $? -ne 0 ] ; then
+			err "Couldn't create $TAPNAME"
+		fi
+
+		# Connect it to the given bridge.
+		/sbin/ifconfig $2 addm $TAPNAME stp $TAPNAME up
+
+		# Return the device name to the caller.
+		echo $TAPNAME
+	else
+		err "$TAPNAME already existent"
 	fi
 }
 
@@ -361,8 +402,7 @@ runvm() {
 
 	# Create tap device.
 	checktapuponopen
-	createtap $ID
-	TAP=tap$?
+	TAP=$(createtap $ID $BRIDGE)
 
 	# Determine nmdm interface to use.
 	NMDMA=/dev/nmdm_${ID}_${NAME}_A
