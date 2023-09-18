@@ -4,6 +4,12 @@
 # Path to the UEFI bootrom.
 BOOTROM=/usr/local/share/uefi-firmware/BHYVE_UEFI.fd
 
+# Path to the UEFI NVRAM blob. Must be given per
+# VM, the guest operating system might store data
+# like the boot order in it. Support for the NVRAM
+# is disabled if not given.
+#NVRAM=/usr/local/share/uefi-firmware/BHYVE_UEFI_VARS.fd
+
 # Bridges the VMs are connected to. Either one
 # or a whitespace seperated list. The NICs are
 # added in the same order to the VM, e.g. the

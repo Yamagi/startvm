@@ -441,14 +441,18 @@ runvm() {
 		done
 
 		CMD="$CMD -s 30,fbuf,tcp=0.0.0.0:$VNC,w=$VNCWIDTH,h=$VNCHEIGHT"
-
 		if [ $VNCWAIT = 1 ] ; then
 			CMD="$CMD,wait"
 		fi
 
 		CMD="$CMD -s 31,lpc"
 		CMD="$CMD -l com1,$NMDMB"
+
 		CMD="$CMD -l bootrom,$BOOTROM"
+		if [ ! -z $NVRAM ] ; then
+			CMD="$CMD,$NVRAM"
+		fi
+
 		CMD="$CMD $NAME"
 
 		# Load and run the VM.
