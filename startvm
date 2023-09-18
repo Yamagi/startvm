@@ -96,11 +96,11 @@ becomedaemon() {
 
 # Check if $BRIDGE exists.
 checkbridge() {
-	dbg "Checking if $BRIDGE exists"
+	dbg "Checking if $BRIDGE exist"
 	/sbin/ifconfig $BRIDGE > /dev/null
 
 	if [ $? -ne 0 ] ; then
-		err "Bridge $BRIDGE doesnt exists"
+		err "Bridge $BRIDGE doesn't exists"
 	fi
 }
 
