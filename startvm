@@ -515,17 +515,14 @@ fi
 # Check if it's a valid VM.
 NAME=$2
 BHYVECFG="$VMDIR/$NAME/bhyve.cfg"
+STARTVMCFG="$VMDIR/$NAME/startvm.cfg"
 
 if [ ! -f "$BHYVECFG" ] ; then
 	err "$NAME is not a valid VM"
 fi
 
-# A local config to override global settings.
-NAME=$2
-LOCALCFG="$VMDIR/$NAME/startvm.cfg"
-
-if [ -f "$LOCALCFG" ] ; then
-	. $LOCALCFG
+if [ -f "$STARTVMCFG" ] ; then
+	. $STARTVMCFG
 fi
 
 if [ $1 = "daemon" ] ; then
