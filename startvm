@@ -41,9 +41,9 @@
 
 # -------------------------------------------------------------------- #
 
-# Source system wide configuration
-SCRIPTPATH=`readlink -f "$0"`
-SCRIPTPATH=`dirname "$SCRIPTPATH"`
+# Source system wide configuration.
+SCRIPTPATH=$(readlink -f "$0")
+SCRIPTPATH=$(dirname "$SCRIPTPATH")
 . $SCRIPTPATH/system.cfg
 
 # -------------------------------------------------------------------- #
@@ -72,7 +72,8 @@ dbg() {
 		echo $@ >&2
 	fi
 }
-# Error out
+
+# Abort with error and exit code 1.
 err() {
 	echo $@ >&2
 	exit 1
@@ -80,21 +81,20 @@ err() {
 
 # -------------------------------------------------------------------- #
 
-# Aborts if not running as root.
+# Abort if not running as root.
 asroot() {
 	if [ $(id -u) -ne 0 ] ; then
-		echo "This can only be done as root."
-		exit 1
+		err "This can only be done as root."
 	fi
 }
 
-# Transforms the process into a daemon.
+# Transform the process into a daemon.
 becomedaemon() {
 	dbg "Respawning as daemon"
 	/usr/sbin/daemon -f $1 daemon $2
 }
 
-# Checks if $BRIDGE exists.
+# Check if $BRIDGE exists.
 checkbridge() {
 	dbg "Checking if $BRIDGE exists"
 	/sbin/ifconfig $BRIDGE > /dev/null
@@ -104,9 +104,9 @@ checkbridge() {
 	fi
 }
 
-# Checks if the "up on open" sysctl for
-# tap devices is set. If necessary it's
-# value is changed to 1.
+# Check if the "up on open" sysctl for
+# tap devices is set. If not it's value
+# is changed to 1.
 checktapuponopen() {
 	dbg "Checking if if_tuntap.ko sysctls are available"
 	/sbin/sysctl net.link.tap.up_on_open > /dev/null 2>&1
@@ -119,8 +119,8 @@ checktapuponopen() {
 	/sbin/sysctl net.link.tap.up_on_open=1 > /dev/null 2>&1
 }
 
-# Creates and configures a tap device.
-#  $1 -> ID of the VM
+# Create and configure the given tap device.
+#  $1 -> ID of the VM.
 createtap() {
 	/sbin/ifconfig tap$1 > /dev/null 2>&1
 
@@ -134,9 +134,9 @@ createtap() {
 	fi
 }
 
-# Generates a unique ID for this instance.
+# Generate a unique ID for this instance.
 generateid() {
-	# Lock
+	# Lock.
     while [ true ] ; do
 		if [ -e $RTDIR/id.lock ] ; then
 			sleep 0.1
@@ -148,7 +148,7 @@ generateid() {
 
 	dbg "Generating ID"
 
-	# Create ID
+	# Create ID.
 	if [ -e $RTDIR/id ] ; then
 		. $RTDIR/id
 
@@ -169,22 +169,22 @@ generateid() {
 			fi
 		done
 
-		# If we're here we're unable to find an ID.
+		# If we're here, we're unable to find an ID.
 		dbg "Maximum ID reached, sorry."
 		rm $RTDIR/id.lock
 		exit 1
 	else
-		# Save and unlock
+		# Save and unlock.
 		echo "UID=\"0\"" > $RTDIR/id
 		rm $RTDIR/id.lock
 		return 0
 	fi
 }
 
-# Removes the given ID from the list of used IDs.
-#  $1 -> ID to remove
+# Remove the given ID from the list of used IDs.
+#  $1 -> ID to remove.
 removeid() {
-	# Lock
+	# Lock.
     while [ true ] ; do
 		if [ -e $RTDIR/id.lock ] ; then
 			sleep 0.1
@@ -214,74 +214,68 @@ removeid() {
 		echo "UID=\"$IDS\"" > $RTDIR/id
 	fi
 
-	# Unlock
+	# Unlock.
 	rm $RTDIR/id.lock
 }
 
 # -------------------------------------------------------------------- #
 
-# Opens a serial console session
-# to the VM.
+# Open a serial console to the VM.
 console() {
 	asroot
 
 	if [ ! -e $RTDIR/$NAME.state ] ; then
-		echo "VM is not running"
-		exit 1
+		 err "VM is not running"
 	fi
 
 	. $RTDIR/$NAME.state
 
-	# Call cu
+	# Call cu.
 	dbg "Calling cu"
 	echo "Type ~ + ^d to exit"
 	/usr/bin/cu -s 9600 -l $NMDMB
 	echo "Console closed"
 }
 
-# Shuts a VM down by sending SIGTERM
-# It will generate an ACPI shutdown
+# Shut the VM down by sending SIGTERM.
+# Bhyve will generate an ACPI shutdown
 # event and send it to the guest.
 haltvm() {
 	asroot
 
  	if [ ! -e $RTDIR/$NAME.state ] ; then
-		echo "VM is not running"
-		exit 1
+		err "VM is not running"
 	fi
 
 	. $RTDIR/$NAME.state
 
  	if [ -z "$PID" ] ; then
-		echo "VM is running, but Bhyve hasn't started yet"
-		exit 1
+		err "VM is running, but Bhyve hasn't started yet"
 	fi
 
 	dbg "Sending SIGTERM to VM"
 	kill -TERM $PID
 }
 
-# Kills a VM by sending SIGKILL.
+# Kill the VM by sending SIGKILL.
 killvm() {
 	asroot
 
   	if [ ! -e $RTDIR/$NAME.state ] ; then
-		echo "VM is not running"
-		exit 1
+		err "VM is not running"
 	fi
 
 	. $RTDIR/$NAME.state
 
 	if [ -z "$PID" ] ; then
-		echo "VM is running, but Bhyve hasn't started yet"
-		exit 1
+		err "VM is running, but Bhyve hasn't started yet"
 	fi
 
 	dbg "Sending SIGKILL to VM"
 	kill -KILL $PID
 }
 
-# Prints a list of all known VMs.
+# Print a list of all known VMs.
 listvms() {
 	dbg "Printing VMs in $VMDIR"
 
@@ -330,7 +324,8 @@ listvms() {
 	done
 }
 
-# Prints a newline separated list of all VMs.
+# Print a newline separated list of all VMs.
+# This can be used for shell autocompletion.
 plainlistvms() {
 	dbg "Printing VMs in $VMDIR"
 
@@ -343,41 +338,40 @@ plainlistvms() {
 	done
 }
 
-# Runs the VM.
+# Run / start the VM.
 runvm() {
 	asroot
 
-	# Check if VM is still running
+	# Check if VM is still running.
 	if [ -e /dev/vmm/$NAME ] ; then
-		echo "VM is still running."
-		exit 1
+		err "VM is still running."
 	fi
 
-	# Create working directory
+	# Create working directory.
 	mkdir -p $RTDIR
 
-	# Determine ID
+	# Determine ID.
 	generateid
 	ID=$?
 
-	# Check if the bridge exists
+	# Check if the bridge exists.
 	checkbridge
 
-	# Create tap device
+	# Create tap device.
 	checktapuponopen
 	createtap $ID
 	TAP=tap$?
 
-	# Determine nmdm interface to use
+	# Determine nmdm interface to use.
 	NMDMA=/dev/nmdm_${ID}_${NAME}_A
 	NMDMB=/dev/nmdm_${ID}_${NAME}_B
 
-	# Determine a VNC port
+	# Determine a VNC port.
 	VNC=$(printf "59%02d" $ID)
 
 	while [ true ] ; do
 
- 		# Save state
+		# Save state.
 		dbg "Saving state to $RTDIR/$NAME.state"
 		echo "TAP=$TAP" > $RTDIR/$NAME.state
 		echo "NMDMA=$NMDMA" >> $RTDIR/$NAME.state
@@ -400,7 +394,7 @@ runvm() {
 		CMD="$CMD -l bootrom,$BOOTROM"
 		CMD="$CMD $NAME"
 
-		# Load and run the VM
+		# Load and run the VM.
 		dbg "Calling bhyve: $CMD"
 
 		if [ $DEBUG -eq 0 ] ; then
@@ -411,17 +405,17 @@ runvm() {
 
 		PID=$!
 
-		# Save PID
+		# Save PID.
 		dbg "Saving PID to $RTDIR/$NAME.state"
 		echo "PID=$PID" >> $RTDIR/$NAME.state
 
-		# Wait for bhyve
+		# Wait for bhyve.
 		wait $PID
 		RET=$?
 
 		# Destroy the VM and wait a second to
-		# give the system a little time to
-		# clean thinks up.
+		# give the system a little moment to
+		# clean things up.
 		if [ -e /dev/vmm/$NAME ] ; then
 			/usr/sbin/bhyvectl --destroy --vm=$NAME > /dev/null 2>&1
 		fi
@@ -442,14 +436,14 @@ runvm() {
 		dbg "Reboot"
 	done
 
-	# Cleanup
+	# Cleanup.
 	/sbin/ifconfig $BRIDGE deletem $TAP up
 	/sbin/ifconfig $TAP destroy
 	rm $RTDIR/$NAME.state
 	removeid $ID
 }
 
-# Prints the status of VM.
+# Print the status of VM.
 status() {
 	if [ -e $RTDIR/$NAME.state ] ; then
 		if [ -e /dev/vmm/$NAME ] ; then
@@ -466,16 +460,12 @@ status() {
 	fi
 }
 
-# Opens vncviewer for the VM or returns the VNC port.
+# Open a vncviewer session to the VM or
+# return the VNC port if no vncviewer is
+# available.
 vnc() {
-	if [ ! $LOADER = "bootrom_gop" ] ; then
-		echo "Not a GOP VM"
-		exit 1
-	fi
-
 	if [ ! -e $RTDIR/$NAME.state ] ; then
-		echo "VM is not running"
-		exit 1
+		err "VM is not running"
 	fi
 
 	. $RTDIR/$NAME.state
@@ -491,12 +481,12 @@ vnc() {
 
 # -------------------------------------------------------------------- #
 
-# Check if configuration dir exists
+# Check if configuration dir exists.
 if [ ! -d $VMDIR ] ; then
 	err "$VMDIR doesn't exists or is not a directory"
 fi
 
-# Single parameter commands
+# Single parameter commands.
 if [ $# -eq 1 ] ; then
 	case $1 in
 		list)
@@ -520,7 +510,7 @@ if [ $# -ne 2 ] ; then
 	usage
 fi
 
-# Check if it's a valid VM
+# Check if it's a valid VM.
 NAME=$2
 BHYVECFG="$VMDIR/$NAME/bhyve.cfg"
 
@@ -528,7 +518,7 @@ if [ ! -f "$BHYVECFG" ] ; then
 	err "$NAME is not a valid VM"
 fi
 
-# A local config to override some global settings
+# A local config to override global settings.
 NAME=$2
 LOCALCFG="$VMDIR/$NAME/startvm.cfg"
 
