@@ -439,16 +439,16 @@ runvm() {
 	# Determine a VNC port.
 	VNC=$(printf "59%02d" $ID)
 
+	# Save state.
+	dbg "Saving state to $RTDIR/$NAME.state"
+	echo "ID=$ID" >> $RTDIR/$NAME.state
+	echo "NMDMA=$NMDMA" >> $RTDIR/$NAME.state
+	echo "NMDMB=$NMDMB" >> $RTDIR/$NAME.state
+	echo "NUMTAPS=$NUMTAPS" > $RTDIR/$NAME.state
+	echo "TAPS=$TAPS" > $RTDIR/$NAME.state
+	echo "VNC=$VNC" >> $RTDIR/$NAME.state
+
 	while [ true ] ; do
-
-		# Save state.
-		dbg "Saving state to $RTDIR/$NAME.state"
-		echo "TAPS=$TAPS" > $RTDIR/$NAME.state
-		echo "NMDMA=$NMDMA" >> $RTDIR/$NAME.state
-		echo "NMDMB=$NMDMB" >> $RTDIR/$NAME.state
-		echo "ID=$ID" >> $RTDIR/$NAME.state
-		echo "VNC=$VNC" >> $RTDIR/$NAME.state
-
 		# Configure the VM.
 		CMD="bhyve -k $BHYVECFG"
 		CMD="$CMD -s 0,hostbridge"
