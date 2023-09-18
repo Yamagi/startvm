@@ -94,13 +94,14 @@ becomedaemon() {
 	/usr/sbin/daemon -f $1 daemon $2
 }
 
-# Check if $BRIDGE exists.
+# Check if the given bridge exists.
+#  $1 -> Bridge to check.
 checkbridge() {
-	dbg "Checking if $BRIDGE exist"
-	/sbin/ifconfig $BRIDGE > /dev/null
+	dbg "Checking if $1 exist"
+	/sbin/ifconfig $1 > /dev/null
 
 	if [ $? -ne 0 ] ; then
-		err "Bridge $BRIDGE doesn't exists"
+		err "Bridge $1 doesn't exists"
 	fi
 }
 
@@ -397,12 +398,20 @@ runvm() {
 	generateid
 	ID=$?
 
-	# Check if the bridge exists.
-	checkbridge
-
-	# Create tap device.
+	# Check if tap devices are marked as up on open().
 	checktapuponopen
-	TAP=$(createtap $ID $BRIDGE)
+
+	# Iterate over all requested bridges, check
+	# them and create the corresponding tap devices.
+	# Save the number of created tap devices, we
+	# need that further down below.
+	TAPS=""
+	NUMTAPS=0
+	for BRIDGE in $BRIDGES ; do
+		checkbridge $BRIDGE
+		TAPS="$TAPS $(createtap $ID $BRIDGE)"
+		NUMTAPS=$(($NUMTAPS + 1))
+	done
 
 	# Determine nmdm interface to use.
 	NMDMA=/dev/nmdm_${ID}_${NAME}_A
@@ -415,7 +424,7 @@ runvm() {
 
 		# Save state.
 		dbg "Saving state to $RTDIR/$NAME.state"
-		echo "TAP=$TAP" > $RTDIR/$NAME.state
+		echo "TAPS=$TAPS" > $RTDIR/$NAME.state
 		echo "NMDMA=$NMDMA" >> $RTDIR/$NAME.state
 		echo "NMDMB=$NMDMB" >> $RTDIR/$NAME.state
 		echo "ID=$ID" >> $RTDIR/$NAME.state
@@ -424,7 +433,13 @@ runvm() {
 		# Configure the VM.
 		CMD="bhyve -k $BHYVECFG"
 		CMD="$CMD -s 0,hostbridge"
-		CMD="$CMD -s 29,virtio-net,$TAP"
+
+		DEVNUM=$((30 - $NUMTAPS))
+		for TAP in $TAPS ; do
+			CMD="$CMD -s $DEVNUM,virtio-net,$TAP"
+			DEVNUM=$(($DEVNUM + 1))
+		done
+
 		CMD="$CMD -s 30,fbuf,tcp=0.0.0.0:$VNC,w=$VNCWIDTH,h=$VNCHEIGHT"
 
 		if [ $VNCWAIT = 1 ] ; then
@@ -479,8 +494,20 @@ runvm() {
 	done
 
 	# Cleanup.
-	/sbin/ifconfig $BRIDGE deletem $TAP up
-	/sbin/ifconfig $TAP destroy
+	for BRIDGE in $BRIDGES ; do
+		# Determine the tap device to remove.
+		MEMBERS=$(ifconfig $BRIDGE | grep member | awk '{print $2}')
+		for MEMBER in $MEMBERS ; do
+			for TAP in $TAPS ; do
+				if [ $MEMBER == $TAP ] ; then
+					# It's one of our tap devices.
+					/sbin/ifconfig $BRIDGE deletem $MEMBER
+					/sbin/ifconfig $MEMBER destroy
+				fi
+			done
+		done
+	done
+
 	rm $RTDIR/$NAME.state
 	removeid $ID
 }

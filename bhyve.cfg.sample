@@ -2,10 +2,13 @@
 # --------------------
 
 # Attention:
-#  * key and value MUST NOT be separated by whitespaces.
+#  * key and value must not be separated by whitespaces.
 #  * There must be no whitespaces at the end of lines.
+#  * NICs are placed in the PCI slots before 30, they must
+#    be avaliable for startvm. For example, 2 NICs require
+#    slot 29 and 28 to be available.
 #  * PCI slots 0, 30 and 31 must be available for startvm.
-#  * startvm configures the com1 port, framebuffer and the NIC.
+#  * startvm configures the com1 port, framebuffer and NICs.
 #  * The VM is always named after its config directory.
 #
 # All options are documented in bhyve_config(5).

@@ -4,8 +4,11 @@
 # Path to the UEFI bootrom.
 BOOTROM=/usr/local/share/uefi-firmware/BHYVE_UEFI.fd
 
-# Bridge the VMs connect to.
-BRIDGE=bridge0
+# Bridges the VMs are connected to. Either one
+# or a whitespace seperated list. The NICs are
+# added in the same order to the VM, e.g. the
+# first NIC connects to the first bridge.
+BRIDGES=bridge0
 
 # Run in background?
 DAEMON=1
