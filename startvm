@@ -178,6 +178,25 @@ createtap() {
 	fi
 }
 
+# Removes a tap device from a bridge. As a security
+# measure only devices associated this this VM are
+# removed.
+#  $1 -> Bridge to remove the device from.
+#  $2 -> Whitespace separated list of all tap devices.
+deletetap() {
+	MEMBERS=$(ifconfig $1 | grep member | awk '{print $2}')
+	for MEMBER in $MEMBERS ; do
+		for TAP in $2 ; do
+			if [ $MEMBER == $TAP ] ; then
+				# It's one of our tap devices.
+				dbg "Removing $MEMBER from $1"
+				/sbin/ifconfig $1 deletem $MEMBER
+				/sbin/ifconfig $MEMBER destroy
+			fi
+		done
+	done
+}
+
 # Generate a unique ID for this instance.
 generateid() {
 	# Lock.
@@ -499,17 +518,7 @@ runvm() {
 
 	# Cleanup.
 	for BRIDGE in $BRIDGES ; do
-		# Determine the tap device to remove.
-		MEMBERS=$(ifconfig $BRIDGE | grep member | awk '{print $2}')
-		for MEMBER in $MEMBERS ; do
-			for TAP in $TAPS ; do
-				if [ $MEMBER == $TAP ] ; then
-					# It's one of our tap devices.
-					/sbin/ifconfig $BRIDGE deletem $MEMBER
-					/sbin/ifconfig $MEMBER destroy
-				fi
-			done
-		done
+		deletetap $BRIDGE "$TAPS"
 	done
 
 	rm $RTDIR/$NAME.state
