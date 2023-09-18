@@ -115,8 +115,10 @@ checktapuponopen() {
 		err "if_tuntab.ko sysctls aren't available"
 	fi
 
-	dbg "Setting net.link.tap.up_on_open to 1"
-	/sbin/sysctl net.link.tap.up_on_open=1 > /dev/null 2>&1
+	if [ $(/sbin/sysctl -n net.link.tap.up_on_open) -ne 1 ] ; then
+		dbg "Setting net.link.tap.up_on_open to 1"
+		/sbin/sysctl net.link.tap.up_on_open=1 > /dev/null 2>&1
+	fi
 }
 
 # Create and configure the given tap device.
