@@ -134,6 +134,7 @@ createtap() {
 	# bridges and need to extract the service name accordingly:
 	#  * bridge_servicename -> Extract service name.
 	#  * bridge-servicename -> Extract servicename.
+	#  * bridge.servicename -> Extract servicename.
 	# Everything else is used like it is.
 	TAPBRIDGE=""
 	echo $2 | grep -q -e '_' -e '-' >/dev/null 2>&1
@@ -150,6 +151,12 @@ createtap() {
 			if [ $? -eq 0 ] ; then
 				# bridge-servicename scheme.
 				TAPBRIDGE=$(echo $2 | cut -d '-' -f 2-)
+			else
+				echo $2 | grep -q -e '.' >/dev/null 2>&1
+				if [ $? -eq 0 ] ; then
+					# bridge.servicename scheme.
+					TAPBRIDGE=$(echo $2 | cut -d '.' -f 2-)
+				fi
 			fi
 		fi
 	fi
