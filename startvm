@@ -451,8 +451,8 @@ runvm() {
 	echo "ID=$ID" >> $RTDIR/$NAME.state
 	echo "NMDMA=$NMDMA" >> $RTDIR/$NAME.state
 	echo "NMDMB=$NMDMB" >> $RTDIR/$NAME.state
-	echo "NUMTAPS=$NUMTAPS" > $RTDIR/$NAME.state
-	echo "TAPS=$TAPS" > $RTDIR/$NAME.state
+	echo "NUMTAPS=$NUMTAPS" >> $RTDIR/$NAME.state
+	echo "TAPS=$TAPS" >> $RTDIR/$NAME.state
 	echo "VNC=$VNC" >> $RTDIR/$NAME.state
 
 	while [ true ] ; do
