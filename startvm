@@ -472,7 +472,7 @@ runvm() {
 		fi
 
 		CMD="$CMD -s 31,lpc"
-		CMD="$CMD -l com1,$NMDMB"
+		CMD="$CMD -l com1,$NMDMA"
 
 		CMD="$CMD -l bootrom,$BOOTROM"
 		if [ ! -z $NVRAM ] ; then
