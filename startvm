@@ -137,7 +137,7 @@ createtap() {
 	#  * bridge.servicename -> Extract servicename.
 	# Everything else is used like it is.
 	TAPBRIDGE=""
-	echo $2 | grep -q -e '_' -e '-' >/dev/null 2>&1
+	echo $2 | grep -q -e '_' -e '-' -e '.' >/dev/null 2>&1
 	if [ $? -ne 0 ] ; then
 		# Unknown or standard scheme.
 		TAPBRIDGE=$2
