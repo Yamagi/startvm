@@ -161,7 +161,7 @@ createtap() {
 		fi
 	fi
 
-	TAPNAME=tap$1_$TAPBRIDGE
+	TAPNAME=tap$1.$TAPBRIDGE
 	dbg "tap device name is $TAPNAME"
 
 	/sbin/ifconfig $TAPNAME > /dev/null 2>&1
