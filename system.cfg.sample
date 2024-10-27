@@ -52,3 +52,11 @@ VMDIR=/data/startvm
 VNCWIDTH=1920
 VNCHEIGHT=1080
 VNCWAIT=0
+
+# If enabled, startvm supervises the guest. The guest must run
+# the startvm_watchdog script. startvm sends every 8 secons a
+# PING, the script answers with PONG. When 16 PONGs were missed,
+# a gracefull shutdown is tried. If the VM doesn't shutdown
+# within 120 seconds, the VM is killed. In both cases the VM
+# is restarted afterwards.
+WATCHDOG=0

@@ -1,0 +1,56 @@
+#!/bin/sh
+#
+# PROVIDE: startvm_watchdog
+# REQUIRE: LOGIN FILESYSTEMS
+# BEFORE: securelevel
+# KEYWORD: nojail shutdown
+
+# ----
+
+. /etc/rc.subr
+
+name="startvm_watchdog"
+rcvar=startvm_watchdog_enable
+
+start_cmd="startvm_watchdog_start"
+stop_cmd="startvm_watchdog_stop"
+
+# ----
+
+startvm_watchdog_start()
+{
+	if [ -f /var/run/startvm_watchdog.pid ] ; then
+		ps -p $(cat /var/run/startvm_watchdog.pid) \
+			| grep daemon >/dev/null 2>&1
+		if [ $? -eq 0 ] ; then
+			return
+		fi
+	fi
+
+	echo "Starting $name"
+	daemon -f -P /var/run/startvm_watchdog.pid -r -R 1 \
+		$startvm_watchdog_binary
+}
+
+startvm_watchdog_stop()
+{
+	if [ -f /var/run/startvm_watchdog.pid ] ; then
+		echo "Stopping $name"
+		kill -TERM $(cat /var/run/startvm_watchdog.pid)
+	fi
+}
+
+# ----
+
+load_rc_config $name
+: ${startvm_watchdog_enable="NO"}
+: ${startvm_watchdog_binary="/usr/opt/startvm/bin/watchdog/startvm_watchdog_freebsd"}
+
+cmd="$1"
+
+if [ $# -gt 0 ]; then
+	shift
+fi
+
+run_rc_command "$cmd"
+

@@ -4,10 +4,10 @@
 # Attention:
 #  * key and value must not be separated by whitespaces.
 #  * There must be no whitespaces at the end of lines.
-#  * NICs are placed in the PCI slots before 30, they must
+#  * NICs are placed in the PCI slots before 29, they must
 #    be avaliable for startvm. For example, 2 NICs require
-#    slot 29 and 28 to be available.
-#  * PCI slots 0, 30 and 31 must be available for startvm.
+#    slot 28 and 27 to be available.
+#  * PCI slots 0, 29, 30 and 31 must be available for startvm.
 #  * startvm configures the com1 port, framebuffer and NICs.
 #  * The VM is always named after its config directory.
 #

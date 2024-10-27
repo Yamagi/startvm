@@ -1,0 +1,111 @@
+#!/bin/sh
+
+# ----
+
+CONSOLE="/dev/ttyV0.0"
+
+# ----
+
+# Print an error to sterr, unarm
+# the wtachdog and exit with exit
+# code 1.
+error() {
+	echo "$@" 1>&2
+
+	if [ -c "$CONSOLE" ] ; then
+		unarm
+	fi
+
+	exit 1
+}
+
+# Unarm the watchdog and exit
+# with exit code 0.
+quit() {
+	if [ -c "$CONSOLE" ] ; then
+		unarm
+	fi
+
+	exit 0
+}
+
+# Unarms the watchdog.
+unarm() {
+	if [ $ARMED -eq 1 ] ; then
+		while : ; do
+			echo "DISARM" > $CONSOLE
+			read -t 1 EVENT < $CONSOLE
+			if [ $? -ne 0 ] ; then
+				continue
+			fi
+
+			case "$EVENT" in
+				DISARMED)
+					break
+					;;
+			esac
+		done
+	fi
+}
+
+# ----
+
+# Track if we are armed.
+ARMED=0
+
+# We need a console device to
+# communicate with the host.
+if [ ! -c "$CONSOLE" ] ; then
+	error "Console device $CONSOLE doesn't exists or isn't a dev node"
+fi
+
+# We need to run as root. Only
+# root can set realtime priority
+# and memory protection. While
+# this can be done from outside,
+# let's keep things simple.
+if [ $(id -u) -ne 0 ] ; then
+	err "This script must be run as root"
+fi
+
+# Set realtime priority and memory
+# protection to prevent us from
+# getting scheduled away for too
+# long and killed at OOM situations.
+rtprio 0 -$$
+protect -dip $$
+
+# Register exit traps, called
+# when the shell quits.
+trap quit INT
+trap quit TERM
+
+# Arm the watchdog.
+while : ; do
+	echo "ARM" > $CONSOLE
+	read -t 1 EVENT < $CONSOLE
+	if [ $? -ne 0 ] ; then
+		continue
+	fi
+
+	case "$EVENT" in
+		ARMED)
+			ARMED=1
+			break
+			;;
+	esac
+done
+
+# Wait for events, answer PING with PONG.
+while : ; do
+	read -t 1 EVENT < $CONSOLE
+	if [ $? -ne 0 ] ; then
+		continue
+	fi
+
+	case "$EVENT" in
+		PING)
+			echo PONG > $CONSOLE
+			;;
+	esac
+done

@@ -460,11 +460,13 @@ runvm() {
 		CMD="bhyve -k $BHYVECFG"
 		CMD="$CMD -s 0,hostbridge"
 
-		DEVNUM=$((30 - $NUMTAPS))
+		DEVNUM=$((29 - $NUMTAPS))
 		for TAP in $TAPS ; do
 			CMD="$CMD -s $DEVNUM,virtio-net,$TAP"
 			DEVNUM=$(($DEVNUM + 1))
 		done
+
+		CMD="$CMD -s 29,virtio-console,port1=$RTDIR/$NAME-console.sock"
 
 		CMD="$CMD -s 30,fbuf,tcp=0.0.0.0:$VNC,w=$VNCWIDTH,h=$VNCHEIGHT"
 		if [ $VNCWAIT = 1 ] ; then
@@ -497,14 +499,123 @@ runvm() {
 		echo "PID=$PID" >> $RTDIR/$NAME.state
 
 		# Wait for bhyve.
-		wait $PID
-		RET=$?
+		if [ $WATCHDOG -eq 1 ] ; then
+			# Watchdog requested.
+			ARMED=0
+			GOTPONG=0
+			MISSED=0
 
-		# Destroy the VM and wait a second to
-		# give the system a little moment to
-		# clean things up.
+			while : ; do
+				# Check if the process is still there. If not, handle
+				# the return code and ensure that the VM is restarted
+				# if requested.
+				ps -p $PID | grep bhyve | grep $NAME >/dev/null 2>&1
+				if [ $? -ne 0 ] ; then
+					dbg "Bhyve process vanished"
+					wait $PID
+					RET=$?
+
+					# If the watchdog is armed, overwrite return
+					# codes >= 3 (triple fault and crash) with 0
+					# (reset) to request a reset below.
+					if [ $ARMED -eq 1 ] ; then
+						if [ $RET -ge 3 ] ; then
+							RET=0
+						fi
+					fi
+
+					break
+				fi
+
+				# Let's see if there are events. PING the guest if the
+				# watchdog is armed. The problem here is, that Unix
+				# Domain Buffers don't buffer data. We get the events
+				# as long as we are connected and miss them if we are
+				# not. So we wait 8 seconds (the watchdog should send
+				# a PING every 8 seconds and will fail if the guest
+				# missed 16 PINGs) and see afterwards what we've got.
+				if [ $ARMED -ne 1 ] ; then
+					dbg "Watchdog isn't armed, waiting for ARM event"
+					RAWEVENTS=$(timeout 8 nc -U $RTDIR/$NAME-console.sock)
+				else
+					dbg "Watchdog is armed, sending PING"
+					RAWEVENTS=$(echo "PING" | timeout 8 nc -U $RTDIR/$NAME-console.sock)
+					GOTPONG=0
+				fi
+
+				# Sockets use carriage return, sh expects line feed.
+				EVENTS=$(echo $RAWEVENTS | tr '\r' '\n')
+
+				for EVENT in $EVENTS ; do
+					case $EVENT in
+						ARM)
+							# Watchdog was armed.
+							dbg "Received ARM, arming watchdog"
+							echo "ARMED" | timeout 1 nc -U $RTDIR/$NAME-console.sock >/dev/null 2>&1
+							ARMED=1
+							GOTPONG=1
+							MISSED=0
+							;;
+						PONG)
+							dbg "Received PONG"
+							GOTPONG=1
+							MISSED=0
+							;;
+						DISARM)
+							dbg "Received DISARM, dearming watchdog"
+							echo "DISARMED" | timeout 1 nc -U $RTDIR/$NAME-console.sock >/dev/null 2>&1
+							ARMED=0
+							MISSED=0
+							;;
+					esac
+				done
+
+				if [ $ARMED -eq 1 ] ; then
+					# Check if we received a response to the PING.
+					if [ $GOTPONG -ne 1 ] ; then
+						MISSED=$(($MISSED+1))
+						dbg "Missed $MISSED / 16 PINGs"
+					fi
+
+					# If 16 PINGs weren't answered, take action.
+					if [ $MISSED -ge 16 ] ; then
+						dbg "Guest missed 16 PINGs, taking action"
+
+						# First let's try to shutdown the guest.
+						# Give it 120 seconds to terminate.
+						dbg "Waiting up to 120 seconds for guest to shutdown gracefully"
+						kill -TERM $PID
+						sleep 120
+						ps -p $PID | grep bhyve | grep name
+						if [ $? -eq 0 ] ; then
+							dbg "Gracefull shutdown successfull"
+							RET=0
+							break
+						else
+							dbg "Guest didn't shutdown, killing the VM"
+							kill -KILL $PID
+							wait $PID
+							RET=0
+							break
+						fi
+					fi
+				fi
+			done
+		else
+			# No watchdog requested, just wait.
+			wait $PID
+			RET=$?
+		fi
+
+		# Destroy the VM and its console docket,
+		# wait a second to give the system a little
+		# moment to clean things up.
 		if [ -e /dev/vmm/$NAME ] ; then
 			/usr/sbin/bhyvectl --destroy --vm=$NAME > /dev/null 2>&1
+		fi
+
+		if [ -e $RTDIR/$NAME-console.sock ] ; then
+			rm $RTDIR/$NAME-console.sock
 		fi
 
 		sleep 1
