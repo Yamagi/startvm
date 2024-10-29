@@ -1,31 +1,45 @@
 #!/bin/sh
 
+# Copyright (c) 2024 Yamagi
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
 # ----
 
 CONSOLE="/dev/ttyV0.0"
 
 # ----
 
-# Print an error to sterr, unarm
-# the wtachdog and exit with exit
-# code 1.
+# Print an error to sterr, unarm the
+# watchdog and exit with exit code 1.
 error() {
 	echo "$@" 1>&2
-
-	if [ -c "$CONSOLE" ] ; then
-		unarm
-	fi
-
+	unarm
 	exit 1
 }
 
-# Unarm the watchdog and exit
-# with exit code 0.
+# Unarm the watchdog and exit with
+# exit code 0.
 quit() {
-	if [ -c "$CONSOLE" ] ; then
-		unarm
-	fi
-
+	unarm
 	exit 0
 }
 
@@ -65,13 +79,13 @@ fi
 # this can be done from outside,
 # let's keep things simple.
 if [ $(id -u) -ne 0 ] ; then
-	err "This script must be run as root"
+	error "This script must be run as root"
 fi
 
 # Set realtime priority and memory
 # protection to prevent us from
 # getting scheduled away for too
-# long and killed at OOM situations.
+# long or killed at OOM situations.
 rtprio 0 -$$
 protect -dip $$
 
@@ -96,7 +110,9 @@ while : ; do
 	esac
 done
 
-# Wait for events, answer PING with PONG.
+# Wait for events, answer PING
+# with PONG to show that we are
+# still alive.
 while : ; do
 	read -t 1 EVENT < $CONSOLE
 	if [ $? -ne 0 ] ; then

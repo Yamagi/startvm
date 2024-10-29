@@ -26,8 +26,10 @@ The following ports are required:
 ## Usage
 
 Create a new directory in your VMDIR. The directory name is used as VM
-name, so do not use any character forbidden by Bhyve. Put bhyve.cfg into
-it. An example config is supplied. Now you're ready to start your VM:
+name, so do not use any character forbidden by Bhyve. Put a *bhyve.cfg*
+into it. If you need to override global options, put a *startvm.cfg*
+beside it. An example config is supplied. Now you're ready to start your
+VM:
 
     Usage: ./startvm.sh [vmname] cmd
     

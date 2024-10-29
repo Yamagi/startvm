@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (c) 2014 - 2019, 2021, 2023 Yamagi
+# Copyright (c) 2014 - 2019, 2021, 2023 - 2024 Yamagi
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -467,7 +467,6 @@ runvm() {
 		done
 
 		CMD="$CMD -s 29,virtio-console,port1=$RTDIR/$NAME-console.sock"
-
 		CMD="$CMD -s 30,fbuf,tcp=0.0.0.0:$VNC,w=$VNCWIDTH,h=$VNCHEIGHT"
 		if [ $VNCWAIT = 1 ] ; then
 			CMD="$CMD,wait"
@@ -549,7 +548,6 @@ runvm() {
 				for EVENT in $EVENTS ; do
 					case $EVENT in
 						ARM)
-							# Watchdog was armed.
 							dbg "Received ARM, arming watchdog"
 							echo "ARMED" | timeout 1 nc -U $RTDIR/$NAME-console.sock >/dev/null 2>&1
 							ARMED=1
@@ -607,9 +605,9 @@ runvm() {
 			RET=$?
 		fi
 
-		# Destroy the VM and its console docket,
-		# wait a second to give the system a little
-		# moment to clean things up.
+		# Destroy the VM and remove its console socket,
+		# wait a second to give the system time to clean
+		# things up.
 		if [ -e /dev/vmm/$NAME ] ; then
 			/usr/sbin/bhyvectl --destroy --vm=$NAME > /dev/null 2>&1
 		fi

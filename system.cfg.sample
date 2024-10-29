@@ -9,16 +9,16 @@
 # Path to the UEFI bootrom.
 BOOTROM=/usr/local/share/uefi-firmware/BHYVE_UEFI.fd
 
-# Path to the UEFI NVRAM blob. Must be given per
-# VM, the guest operating system might store data
-# like the boot order in it. Support for the NVRAM
-# is disabled if not given.
+# Path to the UEFI NVRAM blob. Must be given per VM, the
+# guest operating system might store data like the boot
+# order in it. Support for the NVRAM is disabled if not
+# given.
 #NVRAM=/usr/local/share/uefi-firmware/BHYVE_UEFI_VARS.fd
 
-# Bridges the VMs are connected to. Either one
-# or a whitespace seperated list. The NICs are
-# added in the same order to the VM, e.g. the
-# first NIC connects to the first bridge.
+# Bridges the VMs are connected to. Either one or a
+# whitespace separated list. The NICs are added in the
+# same order to the VM, e.g. the first NIC connects to
+# the first bridge.
 BRIDGES=bridge0
 
 # Run in background?
@@ -27,13 +27,12 @@ DAEMON=1
 # Debug output
 DEBUG=0
 
-# Runtime directory. (Must be the same
-# for all instances, otherwise things
-# will fuck up!)
+# Runtime directory. Must be the same for all instances,
+# otherwise things will fuck up!
 RTDIR=/var/run/startvm
 
-# Directory where the VM configurations
-# are stored. The directory layout is:
+# Directory where the VM configurations are stored. The
+# directory layout is:
 #
 #  vm1/
 #	bhyve.cfg
@@ -42,10 +41,9 @@ RTDIR=/var/run/startvm
 #	bhyve.cfg
 #	startvm.cfg (optional)
 #
-# Of course the upper level directories
-# name must be unique. If the directory
-# doesn't contain a bhyve.cfg it's not
-# recognized as a VM configuration.
+# Of course the upper level directories name must be
+# unique. If the directory doesn't contain a bhyve.cfg
+# it's not recognized as a VM configuration.
 VMDIR=/data/startvm
 
 # VNC configuration.
@@ -54,9 +52,9 @@ VNCHEIGHT=1080
 VNCWAIT=0
 
 # If enabled, startvm supervises the guest. The guest must run
-# the startvm_watchdog script. startvm sends every 8 secons a
+# the startvm_watchdog script. startvm sends every 8 seconds a
 # PING, the script answers with PONG. When 16 PONGs were missed,
 # a gracefull shutdown is tried. If the VM doesn't shutdown
-# within 120 seconds, the VM is killed. In both cases the VM
-# is restarted afterwards.
+# gracefully within 120 seconds, the VM is killed. In both cases
+# the VM is restarted afterwards.
 WATCHDOG=0
