@@ -448,12 +448,19 @@ runvm() {
 
 	# Save state.
 	dbg "Saving state to $RTDIR/$NAME.state"
-	echo "ID=$ID" >> $RTDIR/$NAME.state
+	echo "ID=$ID" > $RTDIR/$NAME.state
 	echo "NMDMA=$NMDMA" >> $RTDIR/$NAME.state
 	echo "NMDMB=$NMDMB" >> $RTDIR/$NAME.state
 	echo "NUMTAPS=$NUMTAPS" >> $RTDIR/$NAME.state
 	echo "TAPS=\"$TAPS\"" >> $RTDIR/$NAME.state
 	echo "VNC=$VNC" >> $RTDIR/$NAME.state
+
+	# Make sure that the socket file doesn't exists.
+	# It might have been left over from a previous
+	# crash and bhyve won't start if it exists.
+	if [ -e $RTDIR/$NAME-console.sock ] ; then
+		rm $RTDIR/$NAME-console.sock
+	fi
 
 	while [ true ] ; do
 		# Configure the VM.
