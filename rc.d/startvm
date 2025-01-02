@@ -17,8 +17,32 @@ stop_cmd="startvm_stop"
 
 # ----
 
+startvm_cleanup()
+{
+	installdir=$(dirname $startvm_binary)
+	systemcfg=$installdir/system.cfg
+
+	if [ -f $systemcfg ] ; then
+		. $systemcfg
+	else
+		return
+	fi
+
+	if [ -e $RTDIR/id ] ; then
+		pgrep bhyve >/dev/null 2>&1
+
+		if [ $? -eq 1 ] ; then
+			rm -f $RTDIR/*
+		fi
+	fi
+}
+
 startvm_start()
 {
+	if [ $startvm_cleanup == "YES" ] ; then
+		startvm_cleanup
+	fi
+
 	echo -n "Starting Bhyve VMs: "
 
 	for _v in ${startvm_list} ; do
@@ -46,6 +70,7 @@ startvm_stop()
 load_rc_config $name
 : ${startvm_enable="NO"}
 : ${startvm_binary="/usr/opt/startvm/bin/startvm"}
+: ${startvm_cleanup="YES"}
 
 cmd="$1"
 
