@@ -1,3 +1,5 @@
+**This repository has moved to Codeberg!** It can now be found at https://codeberg.org/yamagi/startvm
+
 # StartVM
 
 StartVM (*startvm*) is a shell script to run and manage Bhyve virtual
